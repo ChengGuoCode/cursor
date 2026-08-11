@@ -16,7 +16,9 @@ Page({
     budgetPercent: 0,
     trend: [],
     categoryStats: [],
-    recentBills: []
+    recentBills: [],
+    statUnit: 1,
+    timeUnit: 1
   },
 
   onShow() {
@@ -34,7 +36,7 @@ Page({
   async loadOverview() {
     wx.showNavigationBarLoading()
     try {
-      const data = await getOverview({ month: this.data.month })
+      const data = await getOverview({ month: this.data.month, statUnit: this.data.statUnit, timeUnit: this.data.timeUnit })
       const expense = Number(data.expense || 0)
       const income = Number(data.income || 0)
       const balance = income - expense
@@ -63,7 +65,7 @@ Page({
           }
         }),
         categoryStats: (data.categoryStats || []).map((item) => {
-          const cat = getCategoryById(item.categoryId)
+          const cat = getCategoryById(item.code)
           return {
             ...item,
             name: cat.name,
@@ -71,20 +73,6 @@ Page({
             color: cat.color,
             percent: Math.round((item.ratio || 0) * 100),
             amountText: formatMoney(item.amount)
-          }
-        }),
-        recentBills: (data.recentBills || []).map((bill) => {
-          const cat = getCategoryById(bill.categoryId)
-          return {
-            ...bill,
-            icon: cat.icon,
-            color: cat.color,
-            categoryName: cat.name,
-            timeText: formatDate(bill.occurredAt, 'MM-DD HH:mm'),
-            amountText: formatMoney(bill.amount, {
-              withSign: true,
-              type: bill.type
-            })
           }
         })
       })

@@ -20,7 +20,7 @@ function getOverview(params = {}) {
   if (shouldUseMock()) {
     return Promise.resolve({ ...mockOverview, ...params })
   }
-  return request({ url: '/api/overview', method: 'GET', data: params })
+  return request({ url: '/api/bill/overview', method: 'GET', data: params })
 }
 
 /**

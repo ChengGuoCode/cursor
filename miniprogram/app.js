@@ -5,8 +5,8 @@ App({
     userInfo: null,
     currentGroupId: null,
     // 切换为 false 并配置 apiBaseUrl 后走真实后端
-    useMock: true,
-    apiBaseUrl: 'https://api.example.com'
+    useMock: false,
+    apiBaseUrl: 'https://127.0.0.1:9095'
   },
 
   onLaunch() {
