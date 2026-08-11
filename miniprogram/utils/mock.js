@@ -121,6 +121,36 @@ const mockGroups = [
   }
 ]
 
+/**
+ * 近七日 = 含今天往前连续 7 个自然日（滚动窗口，不是「本周一到今天」）。
+ * 例如今天周三：仍展示 7 列（上周四 → 本周三），无支出的日期金额为 0，柱高为 0。
+ */
+function buildLast7DaysTrend(bills = []) {
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+  const expenseByDate = {}
+  bills.forEach((bill) => {
+    if (bill.type !== 'expense') return
+    const key = formatDate(bill.occurredAt || bill.date, 'YYYY-MM-DD')
+    expenseByDate[key] = (expenseByDate[key] || 0) + Number(bill.amount || 0)
+  })
+
+  const trend = []
+  for (let i = 6; i >= 0; i -= 1) {
+    const date = new Date(y, m, d - i)
+    const dateKey = formatDate(date, 'YYYY-MM-DD')
+    const isToday = i === 0
+    trend.push({
+      date: dateKey,
+      // 主标签用日期，避免被理解成「本周星期」
+      label: isToday ? '今天' : `${date.getMonth() + 1}/${date.getDate()}`,
+      weekday: `周${weekdays[date.getDay()]}`,
+      expense: Number((expenseByDate[dateKey] || 0).toFixed(2)),
+      isToday
+    })
+  }
+  return trend
+}
+
 const mockOverview = {
   month: formatDate(today, 'YYYY-MM'),
   expense: 2503.5,
@@ -135,15 +165,7 @@ const mockOverview = {
     { categoryId: 'food', amount: 83.5, ratio: 0.03 },
     { categoryId: 'transport', amount: 6, ratio: 0.01 }
   ],
-  trend: [
-    { label: '一', expense: 120 },
-    { label: '二', expense: 80 },
-    { label: '三', expense: 260 },
-    { label: '四', expense: 90 },
-    { label: '五', expense: 150 },
-    { label: '六', expense: 220 },
-    { label: '日', expense: 44.5 }
-  ]
+  trend: buildLast7DaysTrend(mockBills)
 }
 
 module.exports = {

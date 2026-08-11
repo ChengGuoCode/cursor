@@ -121,15 +121,15 @@
 }
 
 .trend-panel {
-  padding-bottom: 20rpx;
+  padding-bottom: 12rpx;
 }
 
 .trend-bars {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  height: 220rpx;
-  gap: 8rpx;
+  height: 280rpx;
+  gap: 6rpx;
 }
 
 .trend-col {
@@ -138,28 +138,75 @@
   flex-direction: column;
   align-items: center;
   height: 100%;
+  min-width: 0;
 }
 
 .bar-wrap {
   flex: 1;
   width: 100%;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8rpx;
+}
+
+.bar-amount {
+  font-family: "DIN Alternate", "Helvetica Neue", "PingFang SC", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 18rpx;
+  line-height: 1.1;
+  color: var(--color-brand);
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.bar-amount.is-zero {
+  color: var(--color-text-muted);
+  font-weight: 400;
 }
 
 .bar {
   width: 28rpx;
-  min-height: 8rpx;
   border-radius: 12rpx 12rpx 6rpx 6rpx;
   background: linear-gradient(180deg, #1F6B4F, #0B3D2E);
   transition: height 0.35s ease;
 }
 
+.bar.is-zero {
+  width: 28rpx;
+  height: 4rpx !important;
+  min-height: 4rpx;
+  background: rgba(11, 61, 46, 0.12);
+}
+
+.trend-col.today .bar:not(.is-zero) {
+  background: linear-gradient(180deg, #C45C26, #9A3F16);
+}
+
+.trend-col.today .bar-amount:not(.is-zero) {
+  color: var(--color-expense);
+}
+
 .trend-label {
-  margin-top: 12rpx;
-  font-size: 22rpx;
+  margin-top: 10rpx;
+  font-size: 20rpx;
+  color: var(--color-text-secondary);
+  font-weight: 560;
+}
+
+.trend-weekday {
+  margin-top: 2rpx;
+  font-size: 18rpx;
   color: var(--color-text-muted);
+}
+
+.trend-col.today .trend-label {
+  color: var(--color-expense);
 }
 
 .cat-item {

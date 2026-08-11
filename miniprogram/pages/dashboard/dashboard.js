@@ -39,7 +39,8 @@ Page({
       const income = Number(data.income || 0)
       const balance = income - expense
       const budget = Number(data.budget || 0)
-      const maxTrend = Math.max(...(data.trend || []).map((t) => t.expense), 1)
+      const trendRaw = data.trend || []
+      const maxTrend = Math.max(...trendRaw.map((t) => Number(t.expense) || 0), 1)
 
       this.setData({
         monthLabel: formatMonthLabel(data.month || this.data.month),
@@ -51,10 +52,16 @@ Page({
         budgetText: formatMoney(budget),
         budgetUsedText: formatMoney(expense),
         budgetPercent: Math.min(100, Math.round((data.budgetUsedRatio || 0) * 100)),
-        trend: (data.trend || []).map((t) => ({
-          ...t,
-          height: Math.max(8, Math.round((t.expense / maxTrend) * 100))
-        })),
+        // 始终 7 列：无支出高度为 0，不是少画几根柱
+        trend: trendRaw.map((t) => {
+          const value = Number(t.expense) || 0
+          return {
+            ...t,
+            expense: value,
+            height: value > 0 ? Math.max(12, Math.round((value / maxTrend) * 100)) : 0,
+            amountText: value > 0 ? formatMoney(value) : '0'
+          }
+        }),
         categoryStats: (data.categoryStats || []).map((item) => {
           const cat = getCategoryById(item.categoryId)
           return {

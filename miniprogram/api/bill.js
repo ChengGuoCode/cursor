@@ -4,6 +4,17 @@ const { mockBills, mockOverview } = require('../utils/mock')
 /**
  * 概览仪表盘 — GET /api/overview
  * @param {{ month?: string }} params  month=YYYY-MM
+ * @returns {Promise<{
+ *   month: string,
+ *   expense: number,
+ *   income: number,
+ *   budget: number,
+ *   budgetUsedRatio: number,
+ *   recentBills: array,
+ *   categoryStats: array,
+ *   trend: Array<{ date: string, label: string, weekday: string, expense: number, isToday?: boolean }>
+ * }>}
+ * trend：近七日滚动窗口（含今天共 7 天），按日期升序；无支出日 expense=0，仍返回该天。
  */
 function getOverview(params = {}) {
   if (shouldUseMock()) {
