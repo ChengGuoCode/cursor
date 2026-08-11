@@ -1,0 +1,51 @@
+{
+  "pages": [
+    "pages/dashboard/dashboard",
+    "pages/bills/bills",
+    "pages/add/add",
+    "pages/groups/groups",
+    "pages/profile/profile",
+    "pages/bill-detail/bill-detail",
+    "pages/group-detail/group-detail"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#0B3D2E",
+    "navigationBarTitleText": "轻记账",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F3F6F4",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#7A8B82",
+    "selectedColor": "#0B3D2E",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/dashboard/dashboard",
+        "text": "概览"
+      },
+      {
+        "pagePath": "pages/bills/bills",
+        "text": "账单"
+      },
+      {
+        "pagePath": "pages/add/add",
+        "text": "记账"
+      },
+      {
+        "pagePath": "pages/groups/groups",
+        "text": "群组"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "usingComponents": {},
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

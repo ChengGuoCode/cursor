@@ -1,0 +1,61 @@
+<view class="page" wx:if="{{group}}">
+  <view class="soft-panel hero" style="--cover: {{group.coverColor}};">
+    <view class="name">{{group.name}}</view>
+    <view class="meta">{{group.memberCount}} 位成员 · 本月支出 ¥{{group.monthExpenseText}}</view>
+    <view class="balance-line">
+      <text>我的结余</text>
+      <text class="amount amount-md {{group.myBalance >= 0 ? 'amount-income' : 'amount-expense'}}">
+        {{group.balanceText}}
+      </text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <text class="section-title">成员</text>
+    </view>
+    <view class="soft-panel member-list">
+      <view class="member" wx:for="{{group.members}}" wx:key="id">
+        <view class="member-avatar">{{item.nickname.slice(0,1)}}</view>
+        <view class="member-main">
+          <text class="member-name">{{item.nickname}}</text>
+          <text class="member-role">{{item.role === 'owner' ? '创建者' : '成员'}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <text class="section-title">结算建议</text>
+      <text class="section-action" bindtap="loadSettlement">刷新</text>
+    </view>
+    <view class="soft-panel">
+      <block wx:if="{{suggestions.length}}">
+        <view class="suggest" wx:for="{{suggestions}}" wx:key="index">
+          <text>{{item.from}} → {{item.to}}</text>
+          <text class="amount amount-sm amount-expense">¥{{item.amountText}}</text>
+        </view>
+      </block>
+      <view wx:else class="empty-wrap">暂无待结算</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <text class="section-title">群组账单</text>
+    </view>
+    <view class="soft-panel">
+      <block wx:if="{{recentBills.length}}">
+        <view class="bill-row" wx:for="{{recentBills}}" wx:key="id">
+          <view class="bill-main">
+            <view class="bill-title">{{item.categoryName}}</view>
+            <view class="bill-sub">{{item.remark || '无备注'}} · {{item.timeText}}</view>
+          </view>
+          <view class="amount amount-sm amount-expense">{{item.amountText}}</view>
+        </view>
+      </block>
+      <view wx:else class="empty-wrap">还没有群组账单</view>
+    </view>
+  </view>
+</view>

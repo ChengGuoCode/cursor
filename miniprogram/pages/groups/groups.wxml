@@ -1,0 +1,44 @@
+<view class="page groups-page">
+  <view class="head">
+    <view>
+      <view class="page-title">一起算清楚</view>
+      <view class="page-subtitle">合租、出游、聚餐的共同开销</view>
+    </view>
+    <view class="head-actions">
+      <view class="btn-ghost mini" bindtap="onJoin">加入</view>
+      <view class="btn-primary mini" bindtap="onCreate">新建</view>
+    </view>
+  </view>
+
+  <block wx:if="{{groups.length}}">
+    <view
+      class="group-card"
+      wx:for="{{groups}}"
+      wx:key="id"
+      style="--cover: {{item.coverColor}};"
+      data-id="{{item.id}}"
+      bindtap="goDetail"
+    >
+      <view class="group-cover"></view>
+      <view class="group-body">
+        <view class="group-top">
+          <text class="group-name">{{item.name}}</text>
+          <text class="group-role">{{item.role === 'owner' ? '创建者' : '成员'}}</text>
+        </view>
+        <view class="group-meta">{{item.memberCount}} 人 · 本月支出 ¥{{item.monthExpenseText}}</view>
+        <view class="group-balance">
+          <text>我的结余</text>
+          <text class="amount amount-sm {{item.myBalance >= 0 ? 'amount-income' : 'amount-expense'}}">
+            {{item.balanceText}}
+          </text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view wx:else class="empty-wrap soft-panel">
+    <view>还没有群组</view>
+    <view class="page-subtitle">创建一个，邀请室友或朋友一起记账</view>
+    <button class="btn-primary empty-btn" bindtap="onCreate">新建群组</button>
+  </view>
+</view>

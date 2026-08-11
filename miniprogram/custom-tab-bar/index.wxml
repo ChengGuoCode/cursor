@@ -1,0 +1,21 @@
+<view class="tabbar">
+  <view class="tabbar-inner">
+    <block wx:for="{{list}}" wx:key="pagePath">
+      <view
+        class="tab-item {{selected === index ? 'active' : ''}} {{item.isCenter ? 'center' : ''}}"
+        data-index="{{index}}"
+        data-path="{{item.pagePath}}"
+        bindtap="onSwitch"
+      >
+        <view wx:if="{{item.isCenter}}" class="center-btn {{selected === index ? 'active' : ''}}">
+          <text class="center-plus">＋</text>
+        </view>
+        <view wx:else class="icon-wrap">
+          <view class="icon icon-{{item.icon}} {{selected === index ? 'on' : ''}}"></view>
+        </view>
+        <text class="label">{{item.text}}</text>
+      </view>
+    </block>
+  </view>
+  <view class="safe"></view>
+</view>

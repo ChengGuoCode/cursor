@@ -1,0 +1,77 @@
+<view class="page bills-page">
+  <view class="filter-bar soft-panel">
+    <picker mode="date" fields="month" value="{{month}}" bindchange="onMonthChange">
+      <view class="filter-month">{{monthLabel}} ▾</view>
+    </picker>
+    <view class="chip-row">
+      <view
+        class="chip {{type === item.id ? 'active' : ''}}"
+        wx:for="{{typeOptions}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onTypeChange"
+      >{{item.name}}</view>
+    </view>
+    <view class="search-row">
+      <input
+        class="search-input"
+        placeholder="搜索备注"
+        value="{{keyword}}"
+        confirm-type="search"
+        bindinput="onKeywordInput"
+        bindconfirm="onSearch"
+      />
+      <view class="search-btn" bindtap="onSearch">搜索</view>
+    </view>
+  </view>
+
+  <view class="summary soft-panel" wx:if="{{groups.length}}">
+    <view class="summary-item">
+      <text class="summary-label">支出</text>
+      <text class="amount amount-sm amount-expense">{{totalExpenseText}}</text>
+    </view>
+    <view class="summary-item">
+      <text class="summary-label">收入</text>
+      <text class="amount amount-sm amount-income">{{totalIncomeText}}</text>
+    </view>
+  </view>
+
+  <block wx:if="{{groups.length}}">
+    <view class="day-group" wx:for="{{groups}}" wx:key="date">
+      <view class="day-head">
+        <view class="day-left">
+          <text class="day-date">{{item.date}}</text>
+          <text class="day-week">{{item.weekday}}</text>
+        </view>
+        <view class="day-right">
+          <text wx:if="{{item.expense}}" class="amount-expense">支 {{item.expenseText}}</text>
+          <text wx:if="{{item.income}}" class="amount-income">收 {{item.incomeText}}</text>
+        </view>
+      </view>
+      <view class="soft-panel day-list">
+        <view
+          class="bill-row"
+          wx:for="{{item.items}}"
+          wx:for-item="bill"
+          wx:key="id"
+          data-id="{{bill.id}}"
+          bindtap="goDetail"
+        >
+          <view class="bill-icon" style="background: {{bill.color}}22;">{{bill.icon}}</view>
+          <view class="bill-main">
+            <view class="bill-title">{{bill.categoryName}}</view>
+            <view class="bill-sub">{{bill.remark || '无备注'}}{{bill.groupName ? ' · ' + bill.groupName : ''}}</view>
+          </view>
+          <view class="amount amount-sm {{bill.type === 'income' ? 'amount-income' : 'amount-expense'}}">
+            {{bill.amountText}}
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view wx:else class="empty-wrap soft-panel">
+    <view>这个月还没有账单</view>
+    <button class="btn-primary empty-btn" bindtap="goAdd">记一笔</button>
+  </view>
+</view>

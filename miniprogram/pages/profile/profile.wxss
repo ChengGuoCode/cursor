@@ -1,0 +1,72 @@
+.profile-hero {
+  display: flex;
+  gap: 24rpx;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(11, 61, 46, 0.95), rgba(31, 107, 79, 0.85)),
+    #0B3D2E;
+  color: #fff;
+  border: none;
+}
+
+.avatar {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 36rpx;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44rpx;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.nickname {
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.motto {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  opacity: 0.85;
+}
+
+.phone {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  opacity: 0.7;
+}
+
+.menu-panel {
+  padding: 0 28rpx;
+}
+
+.menu-item {
+  min-height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1rpx solid var(--color-border);
+  font-size: 28rpx;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.arrow {
+  color: var(--color-text-muted);
+  font-size: 36rpx;
+}
+
+.menu-value {
+  color: var(--color-text-secondary);
+  font-size: 24rpx;
+}
+
+.login-btn {
+  margin-top: 48rpx;
+  width: 100%;
+}
