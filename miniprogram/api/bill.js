@@ -9,11 +9,12 @@ const { mockBills, mockOverview } = require('../utils/mock')
  *   expense: number,
  *   income: number,
  *   budget: number,
- *   budgetUsedRatio: number,
  *   recentBills: array,
- *   categoryStats: array,
+ *   categoryStats: Array<{ code?: string, categoryId?: string, amount: number }>,
  *   trend: Array<{ date: string, label: string, weekday: string, expense: number, isToday?: boolean }>
  * }>}
+ * 预算进度、分类占比由前端根据 expense/budget、amount/expense 自行计算，后端无需返回 ratio。
+ * categoryStats 分类标识字段可为 code 或 categoryId。
  * trend：近七日滚动窗口（含今天共 7 天），按日期升序；无支出日 expense=0，仍返回该天。
  */
 function getOverview(params = {}) {

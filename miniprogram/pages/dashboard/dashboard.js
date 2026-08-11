@@ -36,13 +36,22 @@ Page({
   async loadOverview() {
     wx.showNavigationBarLoading()
     try {
-      const data = await getOverview({ month: this.data.month, statUnit: this.data.statUnit, timeUnit: this.data.timeUnit })
+      const data = await getOverview({
+        month: this.data.month,
+        statUnit: this.data.statUnit,
+        timeUnit: this.data.timeUnit
+      })
       const expense = Number(data.expense || 0)
       const income = Number(data.income || 0)
       const balance = income - expense
       const budget = Number(data.budget || 0)
+      // 预算进度：前端用 支出 / 预算 计算，不依赖后端 budgetUsedRatio
+      const budgetPercent =
+        budget > 0 ? Math.min(100, Math.round((expense / budget) * 100)) : 0
       const trendRaw = data.trend || []
       const maxTrend = Math.max(...trendRaw.map((t) => Number(t.expense) || 0), 1)
+      // 分类占比：分子=该分类支出，分母=本期总支出；后端只需分类标识 + amount
+      const categoryRaw = data.categoryStats || []
 
       this.setData({
         monthLabel: formatMonthLabel(data.month || this.data.month),
@@ -53,7 +62,7 @@ Page({
         budget,
         budgetText: formatMoney(budget),
         budgetUsedText: formatMoney(expense),
-        budgetPercent: Math.min(100, Math.round((data.budgetUsedRatio || 0) * 100)),
+        budgetPercent,
         // 始终 7 列：无支出高度为 0，不是少画几根柱
         trend: trendRaw.map((t) => {
           const value = Number(t.expense) || 0
@@ -64,15 +73,20 @@ Page({
             amountText: value > 0 ? formatMoney(value) : '0'
           }
         }),
-        categoryStats: (data.categoryStats || []).map((item) => {
-          const cat = getCategoryById(item.code)
+        categoryStats: categoryRaw.map((item) => {
+          // 兼容后端字段：code 或 categoryId
+          const categoryKey = item.code || item.categoryId
+          const cat = getCategoryById(categoryKey)
+          const amount = Number(item.amount) || 0
           return {
             ...item,
+            categoryId: categoryKey,
+            amount,
             name: cat.name,
             icon: cat.icon,
             color: cat.color,
-            percent: Math.round((item.ratio || 0) * 100),
-            amountText: formatMoney(item.amount)
+            percent: expense > 0 ? Math.round((amount / expense) * 100) : 0,
+            amountText: formatMoney(amount)
           }
         })
       })

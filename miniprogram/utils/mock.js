@@ -156,14 +156,14 @@ const mockOverview = {
   expense: 2503.5,
   income: 12000,
   budget: 5000,
-  budgetUsedRatio: 0.5,
   recentBills: mockBills.slice(0, 5),
+  // 分类统计：后端只返回 categoryId + amount，占比由前端用 amount / expense 计算
   categoryStats: [
-    { categoryId: 'housing', amount: 2200, ratio: 0.88 },
-    { categoryId: 'shopping', amount: 128, ratio: 0.05 },
-    { categoryId: 'entertainment', amount: 86, ratio: 0.03 },
-    { categoryId: 'food', amount: 83.5, ratio: 0.03 },
-    { categoryId: 'transport', amount: 6, ratio: 0.01 }
+    { categoryId: 'housing', amount: 2200 },
+    { categoryId: 'shopping', amount: 128 },
+    { categoryId: 'entertainment', amount: 86 },
+    { categoryId: 'food', amount: 83.5 },
+    { categoryId: 'transport', amount: 6 }
   ],
   trend: buildLast7DaysTrend(mockBills)
 }
