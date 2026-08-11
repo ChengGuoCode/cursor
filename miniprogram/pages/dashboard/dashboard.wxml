@@ -86,31 +86,5 @@
     </view>
   </view>
 
-  <view class="section">
-    <view class="section-head">
-      <text class="section-title">最近账单</text>
-      <text class="section-action" bindtap="goAdd">去记账</text>
-    </view>
-    <view class="soft-panel recent-list">
-      <block wx:if="{{recentBills.length}}">
-        <view
-          class="bill-row"
-          wx:for="{{recentBills}}"
-          wx:key="id"
-          data-id="{{item.id}}"
-          bindtap="goBillDetail"
-        >
-          <view class="bill-icon" style="background: {{item.color}}22;">{{item.icon}}</view>
-          <view class="bill-main">
-            <view class="bill-title">{{item.categoryName}}</view>
-            <view class="bill-sub">{{item.remark || '无备注'}} · {{item.timeText}}</view>
-          </view>
-          <view class="amount amount-sm {{item.type === 'income' ? 'amount-income' : 'amount-expense'}}">
-            {{item.amountText}}
-          </view>
-        </view>
-      </block>
-      <view wx:else class="empty-wrap">还没有账单，点中间「＋」记一笔</view>
-    </view>
-  </view>
+  
 </view>
