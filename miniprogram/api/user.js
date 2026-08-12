@@ -42,10 +42,9 @@ function wxLogin(code) {
   }
 
   return request({
-    url: '/api/auth/wx-login',
-    method: 'POST',
-    data: { code },
-    auth: false
+    url: '/api/user/login',
+    method: 'GET',
+    data: { code }
   }).then((raw) => applyLoginSession(raw))
 }
 
