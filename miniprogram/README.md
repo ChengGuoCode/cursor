@@ -46,6 +46,18 @@
    - `api/bill.js` — 概览 / 账单 CRUD
    - `api/group.js` — 群组 / 结算
 3. 统一请求封装：`utils/request.js`（Bearer Token、`{ code, data, message }` 约定）。
+4. 登录会话：`utils/auth.js`（token 落盘 / 清理 / 401 引导）。
+
+### 登录闭环
+
+1. 「我的」点登录 → `wx.login` 取 `code` → `POST /api/auth/wx-login`
+2. 成功后将 `token` 写入 Storage，后续请求自动带 `Authorization: Bearer …`
+3. 若登录响应只有 token，再请求 `GET /api/user/profile` 补全资料
+4. 启动时若有 token，静默拉资料；失效则清会话
+5. 业务请求 HTTP/业务码 401：清会话、提示，并跳转「我的」重新登录
+6. 退出：调 logout（失败也清本地），清空 `globalData.userInfo`
+
+登录接口建议返回：`{ token, user }`（也兼容 `accessToken` / `userInfo`）。
 
 ### 预留接口一览
 
@@ -66,7 +78,7 @@
 1. 安装[微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)
 2. 导入项目目录：`miniprogram/`
 3. AppID 可使用测试号；`project.config.json` 中当前为 `touristappid`
-4. 编译预览；默认 `useMock: true`，无需后端即可浏览
+4. 编译预览；`app.js` 中 `useMock` 控制 Mock/真实接口，真实模式需配置可访问的 `apiBaseUrl`
 
 ## 目录结构
 
@@ -75,7 +87,7 @@ miniprogram/
   app.js / app.json / app.wxss
   custom-tab-bar/          # 自定义五栏（中间凸起）
   api/                     # 后端预留函数
-  utils/                   # request / format / constants / mock
+  utils/                   # request / auth / format / constants / mock
   pages/
     dashboard | bills | add | groups | profile
     bill-detail | group-detail

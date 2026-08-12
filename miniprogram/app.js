@@ -1,4 +1,6 @@
 const { getProfile } = require('./api/user')
+const { getToken, clearSession, isLoggedIn } = require('./utils/auth')
+const { shouldUseMock } = require('./utils/request')
 
 App({
   globalData: {
@@ -13,11 +15,28 @@ App({
     this.bootstrapUser()
   },
 
+  /**
+   * 启动恢复会话：
+   * - 无 token：保持未登录，不请求资料
+   * - 有 token：拉资料；失败则清会话（不强制跳转，避免启动打扰）
+   */
   async bootstrapUser() {
+    if (!shouldUseMock() && !isLoggedIn()) {
+      this.globalData.userInfo = null
+      return
+    }
+
+    // Mock 且从未登录过：不自动灌入用户，等待手动登录
+    if (shouldUseMock() && !getToken()) {
+      this.globalData.userInfo = null
+      return
+    }
+
     try {
-      const user = await getProfile()
+      const user = await getProfile({ skipAuthRedirect: true })
       this.globalData.userInfo = user
     } catch (err) {
+      clearSession()
       console.warn('bootstrap user failed', err)
     }
   }

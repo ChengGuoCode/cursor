@@ -3,6 +3,8 @@
  * useMock=true 时不会发起网络请求，由各 api 模块自行返回 mock。
  */
 
+const { getToken, clearSession, handleUnauthorized } = require('./auth')
+
 function getAppSafe() {
   try {
     return getApp()
@@ -18,17 +20,14 @@ function buildUrl(path) {
   return `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
 }
 
-function getToken() {
-  return wx.getStorageSync('token') || ''
-}
-
 /**
  * @param {object} options
  * @param {string} options.url
  * @param {'GET'|'POST'|'PUT'|'DELETE'|'PATCH'} [options.method]
  * @param {object} [options.data]
  * @param {object} [options.header]
- * @param {boolean} [options.auth]
+ * @param {boolean} [options.auth] 是否附带 Bearer token，默认 true
+ * @param {boolean} [options.skipAuthRedirect] 401 时不跳转登录（如启动拉资料）
  */
 function request(options = {}) {
   const {
@@ -36,7 +35,8 @@ function request(options = {}) {
     method = 'GET',
     data = {},
     header = {},
-    auth = true
+    auth = true,
+    skipAuthRedirect = false
   } = options
 
   return new Promise((resolve, reject) => {
@@ -57,24 +57,45 @@ function request(options = {}) {
       header: headers,
       success(res) {
         const { statusCode, data: body } = res
+
+        if (statusCode === 401) {
+          const err = new Error('未登录或登录已过期')
+          err.code = 401
+          if (!skipAuthRedirect) handleUnauthorized(err.message)
+          else {
+            const { clearSession } = require('./auth')
+            clearSession()
+          }
+          reject(err)
+          return
+        }
+
         if (statusCode >= 200 && statusCode < 300) {
           // 约定后端：{ code, data, message }；也兼容直接返回 data
           if (body && typeof body === 'object' && 'code' in body) {
             if (body.code === 0 || body.code === 200) {
               resolve(body.data)
-            } else {
-              reject(new Error(body.message || '业务错误'))
+              return
             }
-          } else {
-            resolve(body)
+            // 业务层未登录
+            if (body.code === 401 || body.code === 40101) {
+              const err = new Error(body.message || '未登录或登录已过期')
+              err.code = 401
+              if (!skipAuthRedirect) handleUnauthorized(err.message)
+              else {
+                const { clearSession } = require('./auth')
+                clearSession()
+              }
+              reject(err)
+              return
+            }
+            reject(new Error(body.message || '业务错误'))
+            return
           }
+          resolve(body)
           return
         }
-        if (statusCode === 401) {
-          wx.removeStorageSync('token')
-          reject(new Error('未登录或登录已过期'))
-          return
-        }
+
         reject(new Error(`HTTP ${statusCode}`))
       },
       fail(err) {

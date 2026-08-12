@@ -1,10 +1,13 @@
 const { getProfile, wxLogin, logout } = require('../../api/user')
+const { isLoggedIn, clearSession } = require('../../utils/auth')
+const { shouldUseMock } = require('../../utils/request')
 
 Page({
   data: {
     user: {},
     avatarText: '记',
-    useMock: true
+    useMock: true,
+    loggingIn: false
   },
 
   onShow() {
@@ -17,43 +20,80 @@ Page({
   },
 
   async loadProfile() {
+    // 无 token：直接展示未登录，避免多余 401
+    if (!isLoggedIn()) {
+      getApp().globalData.userInfo = null
+      this.setData({ user: {}, avatarText: '记' })
+      return
+    }
+
     try {
-      const user = await getProfile()
+      const user = await getProfile({ skipAuthRedirect: true })
       getApp().globalData.userInfo = user
       this.setData({
-        user,
-        avatarText: (user.nickname || '记').slice(0, 1)
+        user: user || {},
+        avatarText: ((user && user.nickname) || '记').slice(0, 1)
       })
     } catch (err) {
+      clearSession()
       this.setData({ user: {}, avatarText: '记' })
     }
   },
 
   async onLoginOrLogout() {
-    if (this.data.user && this.data.user.id) {
-      await logout()
-      getApp().globalData.userInfo = null
-      this.setData({ user: {}, avatarText: '记' })
-      wx.showToast({ title: '已退出', icon: 'none' })
+    if (this.data.loggingIn) return
+
+    // 已登录 → 退出
+    if (isLoggedIn() || (this.data.user && this.data.user.id)) {
+      this.setData({ loggingIn: true })
+      try {
+        await logout()
+        this.setData({ user: {}, avatarText: '记' })
+        wx.showToast({ title: '已退出', icon: 'none' })
+      } catch (err) {
+        clearSession()
+        this.setData({ user: {}, avatarText: '记' })
+        wx.showToast({ title: '已退出', icon: 'none' })
+      } finally {
+        this.setData({ loggingIn: false })
+      }
       return
     }
 
-    // 预留：正式环境用 wx.login 取 code 后调后端
+    // 未登录 → 微信登录
+    this.setData({ loggingIn: true })
     wx.login({
       success: async (res) => {
         try {
+          if (!res.code && !shouldUseMock()) {
+            throw new Error('未获取到微信登录 code')
+          }
           const result = await wxLogin(res.code || 'mock-code')
-          getApp().globalData.userInfo = result.user
+          let user = result.user
+          // 后端若只返回 token，再拉一次资料补全
+          if (!user || !user.id) {
+            try {
+              user = await getProfile({ skipAuthRedirect: true })
+            } catch (e) {
+              user = user || {}
+            }
+          }
+          getApp().globalData.userInfo = user
           this.setData({
-            user: result.user,
-            avatarText: (result.user.nickname || '记').slice(0, 1)
+            user: user || {},
+            avatarText: ((user && user.nickname) || '记').slice(0, 1)
           })
           wx.showToast({ title: '登录成功', icon: 'success' })
         } catch (err) {
+          clearSession()
+          this.setData({ user: {}, avatarText: '记' })
           wx.showToast({ title: err.message || '登录失败', icon: 'none' })
+        } finally {
+          this.setData({ loggingIn: false })
         }
       },
       fail: () => {
+        this.setData({ loggingIn: false })
         wx.showToast({ title: '微信登录不可用', icon: 'none' })
       }
     })
@@ -86,7 +126,13 @@ Page({
   onToggleMock() {
     const app = getApp()
     app.globalData.useMock = !app.globalData.useMock
-    this.setData({ useMock: app.globalData.useMock })
+    // 切换数据模式时清会话，避免 mock/真实 token 混用
+    clearSession()
+    this.setData({
+      useMock: app.globalData.useMock,
+      user: {},
+      avatarText: '记'
+    })
     wx.showToast({
       title: app.globalData.useMock ? '已切换 Mock' : '已切换真实接口',
       icon: 'none'

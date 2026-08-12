@@ -38,7 +38,12 @@
     </view>
   </view>
 
-  <button class="btn-primary login-btn" bindtap="onLoginOrLogout">
+  <button
+    class="btn-primary login-btn"
+    loading="{{loggingIn}}"
+    disabled="{{loggingIn}}"
+    bindtap="onLoginOrLogout"
+  >
     {{user.id ? '退出登录' : '微信登录'}}
   </button>
 </view>
