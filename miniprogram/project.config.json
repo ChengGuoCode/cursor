@@ -47,7 +47,7 @@
     "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "3.5.5",
+  "libVersion": "3.17.0",
   "appid": "",
   "projectname": "qing-jizhang",
   "condition": {},
