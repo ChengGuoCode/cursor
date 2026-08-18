@@ -50,16 +50,17 @@
 
 ### 登录闭环
 
-1. 「我的」点登录 → `wx.login` 取 `code` → 登录接口换 token
-2. 成功后将 `token` 写入 Storage，后续请求自动带 `Authorization: Bearer …`
-3. 若登录响应只有 token，再请求 `GET /api/user/profile` 补全资料
-4. 启动时若有 token，静默拉资料；失效则清会话（不强制跳转）
-5. **浏览**（概览/账单/群组列表）：未登录不请求或失败只清会话，**不跳转登录**
-6. **主动写操作**（保存账单、新建/加入群组、删除账单）：先 `requireLogin()`，未登录才跳「我的」
-7. 写接口 401 时带 `forceLoginOnUnauthorized`，引导重新登录
-8. 退出：调 logout（失败也清本地）
+对接后端 `ResDTO<T>`：`{ code, msg, data }`，`code === 0` 成功，失败用 `msg` 提示。
 
-登录接口建议返回：`{ token, user }`（也兼容 `accessToken` / `userInfo`）。
+1. 「我的」点登录 → `wx.login` 取 `code` → `GET /api/user/login?code=`
+2. 登录成功：`data` 为 **token 字符串** → 写入 Storage
+3. 再请求 `GET /api/user/profile` 拉取用户信息，填充头像 / 昵称
+4. 登录失败（`code !== 0`）：toast 展示 `msg`，保持未登录（不写 token）
+5. **浏览**（概览/账单/群组）：未登录不请求，不跳转登录
+6. **主动写操作**：`requireLogin()` 未登录才跳「我的」
+7. 退出：清本地会话
+
+登录接口约定：`ResDTO.ok(token)` → `{ code: 0, msg: "success", data: "<jwt>" }`。
 
 ### 预留接口一览
 

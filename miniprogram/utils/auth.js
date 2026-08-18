@@ -30,13 +30,14 @@ function isLoggedIn() {
 }
 
 /**
- * 兼容多种后端登录返回结构，统一为 { token, user }
- * 支持：
- * - { token, user }
- * - { accessToken, userInfo }
- * - { token, ...用户字段 }
+ * 兼容后端 ResDTO 及多种登录 data：
+ * - data 为 string → 即 token（当前后端 login 约定）
+ * - data 为 { token, user } / { accessToken, userInfo } 等
  */
 function normalizeLoginResult(raw) {
+  if (typeof raw === 'string' && raw) {
+    return { token: raw, user: null }
+  }
   if (!raw || typeof raw !== 'object') {
     return { token: '', user: null }
   }
@@ -48,20 +49,30 @@ function normalizeLoginResult(raw) {
   if (!user) {
     const { token: _t, accessToken, access_token, jwt, ...rest } = raw
     if (rest.id || rest.userId || rest.nickname || rest.nickName) {
-      user = {
-        id: rest.id || rest.userId,
-        nickname: rest.nickname || rest.nickName || '',
-        avatarUrl: rest.avatarUrl || rest.avatar || '',
-        phoneMask: rest.phoneMask || rest.phone || '',
-        ...rest
-      }
+      user = normalizeUser(rest)
     }
+  } else {
+    user = normalizeUser(user)
   }
 
   return { token, user }
 }
 
-/** 登录成功后写入 token，并同步 globalData.userInfo */
+/** 统一用户资料字段（昵称、头像等） */
+function normalizeUser(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const nickname = raw.nickname || raw.nickName || raw.name || ''
+  return {
+    ...raw,
+    id: raw.id || raw.userId || raw.openid || '',
+    nickname,
+    avatarUrl: raw.avatarUrl || raw.avatar || raw.headImgUrl || '',
+    phoneMask: raw.phoneMask || raw.phone || raw.mobile || '',
+    motto: raw.motto || ''
+  }
+}
+
+/** 登录成功后写入 token；若同时带了 user 则同步到 globalData */
 function applyLoginSession(raw) {
   const { token, user } = normalizeLoginResult(raw)
   if (!token) {
@@ -135,6 +146,7 @@ module.exports = {
   clearSession,
   isLoggedIn,
   requireLogin,
+  normalizeUser,
   normalizeLoginResult,
   applyLoginSession,
   handleUnauthorized

@@ -79,19 +79,22 @@ function request(options = {}) {
         }
 
         if (statusCode >= 200 && statusCode < 300) {
+          // 后端 ResDTO：{ code, msg, data }；code===0 成功
           if (body && typeof body === 'object' && 'code' in body) {
+            const tip = body.msg || body.message || ''
             if (body.code === 0 || body.code === 200) {
               resolve(body.data)
               return
             }
             if (body.code === 401 || body.code === 40101) {
-              const err = new Error(body.message || '未登录或登录已过期')
+              const err = new Error(tip || '未登录或登录已过期')
               err.code = 401
               onAuthFailure(err, { forceLoginOnUnauthorized })
               reject(err)
               return
             }
-            reject(new Error(body.message || '业务错误'))
+            // 如 ResDTO.err → code=1，弹出 msg
+            reject(new Error(tip || '业务错误'))
             return
           }
           resolve(body)

@@ -2,10 +2,21 @@ const { getProfile, wxLogin, logout } = require('../../api/user')
 const { isLoggedIn, clearSession } = require('../../utils/auth')
 const { shouldUseMock } = require('../../utils/request')
 
+function applyUserToView(user) {
+  const safe = user || {}
+  getApp().globalData.userInfo = safe
+  return {
+    user: safe,
+    avatarText: (safe.nickname || '记').slice(0, 1),
+    avatarUrl: safe.avatarUrl || ''
+  }
+}
+
 Page({
   data: {
     user: {},
     avatarText: '记',
+    avatarUrl: '',
     useMock: true,
     loggingIn: false
   },
@@ -20,23 +31,19 @@ Page({
   },
 
   async loadProfile() {
-    // 无 token：直接展示未登录，避免多余 401
     if (!isLoggedIn()) {
       getApp().globalData.userInfo = null
-      this.setData({ user: {}, avatarText: '记' })
+      this.setData({ user: {}, avatarText: '记', avatarUrl: '' })
       return
     }
 
     try {
       const user = await getProfile()
-      getApp().globalData.userInfo = user
-      this.setData({
-        user: user || {},
-        avatarText: ((user && user.nickname) || '记').slice(0, 1)
-      })
+      this.setData(applyUserToView(user))
     } catch (err) {
+      // 资料拉取失败：清会话，保持未登录展示
       clearSession()
-      this.setData({ user: {}, avatarText: '记' })
+      this.setData({ user: {}, avatarText: '记', avatarUrl: '' })
     }
   },
 
@@ -48,11 +55,11 @@ Page({
       this.setData({ loggingIn: true })
       try {
         await logout()
-        this.setData({ user: {}, avatarText: '记' })
+        this.setData({ user: {}, avatarText: '记', avatarUrl: '' })
         wx.showToast({ title: '已退出', icon: 'none' })
       } catch (err) {
         clearSession()
-        this.setData({ user: {}, avatarText: '记' })
+        this.setData({ user: {}, avatarText: '记', avatarUrl: '' })
         wx.showToast({ title: '已退出', icon: 'none' })
       } finally {
         this.setData({ loggingIn: false })
@@ -68,26 +75,39 @@ Page({
           if (!res.code && !shouldUseMock()) {
             throw new Error('未获取到微信登录 code')
           }
-          const result = await wxLogin(res.code || 'mock-code')
-          let user = result.user
-          // 后端若只返回 token，再拉一次资料补全
-          if (!user || !user.id) {
-            try {
-              user = await getProfile()
-            } catch (e) {
-              user = user || {}
-            }
+
+          // 1) 登录：ResDTO.data = token 字符串；失败抛错并保持未登录
+          await wxLogin(res.code || 'mock-code')
+
+          // 2) 成功后拉用户资料，填充头像/昵称
+          try {
+            const user = await getProfile()
+            this.setData(applyUserToView(user))
+            wx.showToast({ title: '登录成功', icon: 'success' })
+          } catch (profileErr) {
+            // token 已缓存，资料失败仍视为已登录，页面用占位展示
+            this.setData(
+              applyUserToView({
+                id: 'logged-in',
+                nickname: '已登录',
+                motto: '资料暂未加载，下拉或重新进入可重试'
+              })
+            )
+            wx.showToast({
+              title: (profileErr && profileErr.message) || '登录成功，资料加载失败',
+              icon: 'none',
+              duration: 2500
+            })
           }
-          getApp().globalData.userInfo = user
-          this.setData({
-            user: user || {},
-            avatarText: ((user && user.nickname) || '记').slice(0, 1)
-          })
-          wx.showToast({ title: '登录成功', icon: 'success' })
         } catch (err) {
+          // 登录失败：清会话，保持未登录，展示后端 msg
           clearSession()
-          this.setData({ user: {}, avatarText: '记' })
-          wx.showToast({ title: err.message || '登录失败', icon: 'none' })
+          this.setData({ user: {}, avatarText: '记', avatarUrl: '' })
+          wx.showToast({
+            title: (err && err.message) || '登录失败',
+            icon: 'none',
+            duration: 2500
+          })
         } finally {
           this.setData({ loggingIn: false })
         }
@@ -126,12 +146,12 @@ Page({
   onToggleMock() {
     const app = getApp()
     app.globalData.useMock = !app.globalData.useMock
-    // 切换数据模式时清会话，避免 mock/真实 token 混用
     clearSession()
     this.setData({
       useMock: app.globalData.useMock,
       user: {},
-      avatarText: '记'
+      avatarText: '记',
+      avatarUrl: ''
     })
     wx.showToast({
       title: app.globalData.useMock ? '已切换 Mock' : '已切换真实接口',
