@@ -36,6 +36,11 @@
     </view>
   </block>
 
+  <view wx:elif="{{guestMode}}" class="empty-wrap soft-panel">
+    <view>登录后可查看群组</view>
+    <view class="page-subtitle">浏览无需登录；新建或加入时会引导登录</view>
+  </view>
+
   <view wx:else class="empty-wrap soft-panel">
     <view>还没有群组</view>
     <view class="page-subtitle">创建一个，邀请室友或朋友一起记账</view>

@@ -1,6 +1,10 @@
 /**
  * 统一请求封装：后续对接真实后端时只改这里即可。
  * useMock=true 时不会发起网络请求，由各 api 模块自行返回 mock。
+ *
+ * 登录引导策略：
+ * - 浏览/读接口默认不因 401 跳转登录页
+ * - 写操作传 forceLoginOnUnauthorized: true，或页面先调 requireLogin()
  */
 
 const { getToken, clearSession, handleUnauthorized } = require('./auth')
@@ -20,6 +24,14 @@ function buildUrl(path) {
   return `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
 }
 
+function onAuthFailure(err, { forceLoginOnUnauthorized }) {
+  if (forceLoginOnUnauthorized) {
+    handleUnauthorized(err.message, { redirect: true })
+  } else {
+    clearSession()
+  }
+}
+
 /**
  * @param {object} options
  * @param {string} options.url
@@ -27,7 +39,7 @@ function buildUrl(path) {
  * @param {object} [options.data]
  * @param {object} [options.header]
  * @param {boolean} [options.auth] 是否附带 Bearer token，默认 true
- * @param {boolean} [options.skipAuthRedirect] 401 时不跳转登录（如启动拉资料）
+ * @param {boolean} [options.forceLoginOnUnauthorized] 401 时是否跳转登录（写操作用）
  */
 function request(options = {}) {
   const {
@@ -36,7 +48,7 @@ function request(options = {}) {
     data = {},
     header = {},
     auth = true,
-    skipAuthRedirect = false
+    forceLoginOnUnauthorized = false
   } = options
 
   return new Promise((resolve, reject) => {
@@ -61,31 +73,21 @@ function request(options = {}) {
         if (statusCode === 401) {
           const err = new Error('未登录或登录已过期')
           err.code = 401
-          if (!skipAuthRedirect) handleUnauthorized(err.message)
-          else {
-            const { clearSession } = require('./auth')
-            clearSession()
-          }
+          onAuthFailure(err, { forceLoginOnUnauthorized })
           reject(err)
           return
         }
 
         if (statusCode >= 200 && statusCode < 300) {
-          // 约定后端：{ code, data, message }；也兼容直接返回 data
           if (body && typeof body === 'object' && 'code' in body) {
             if (body.code === 0 || body.code === 200) {
               resolve(body.data)
               return
             }
-            // 业务层未登录
             if (body.code === 401 || body.code === 40101) {
               const err = new Error(body.message || '未登录或登录已过期')
               err.code = 401
-              if (!skipAuthRedirect) handleUnauthorized(err.message)
-              else {
-                const { clearSession } = require('./auth')
-                clearSession()
-              }
+              onAuthFailure(err, { forceLoginOnUnauthorized })
               reject(err)
               return
             }

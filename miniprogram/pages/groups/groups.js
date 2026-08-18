@@ -1,9 +1,11 @@
 const { getGroups, createGroup, joinGroup } = require('../../api/group')
 const { formatMoney } = require('../../utils/format')
+const { isLoggedIn, requireLogin } = require('../../utils/auth')
 
 Page({
   data: {
-    groups: []
+    groups: [],
+    guestMode: false
   },
 
   onShow() {
@@ -14,10 +16,17 @@ Page({
   },
 
   async loadGroups() {
+    // 未登录：不请求，不引导登录
+    if (!isLoggedIn()) {
+      this.setData({ groups: [], guestMode: true })
+      return
+    }
+
     wx.showNavigationBarLoading()
     try {
       const { list } = await getGroups()
       this.setData({
+        guestMode: false,
         groups: (list || []).map((g) => ({
           ...g,
           monthExpenseText: formatMoney(g.monthExpense),
@@ -25,13 +34,20 @@ Page({
         }))
       })
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      if (err && err.code === 401) {
+        this.setData({ groups: [], guestMode: true })
+      } else {
+        wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      }
     } finally {
       wx.hideNavigationBarLoading()
     }
   },
 
   onCreate() {
+    // 主动写操作：未登录才引导登录
+    if (!requireLogin('新建群组前请先登录')) return
+
     wx.showModal({
       title: '新建群组',
       editable: true,
@@ -55,6 +71,8 @@ Page({
   },
 
   onJoin() {
+    if (!requireLogin('加入群组前请先登录')) return
+
     wx.showModal({
       title: '加入群组',
       editable: true,

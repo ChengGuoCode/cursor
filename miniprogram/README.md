@@ -50,12 +50,14 @@
 
 ### 登录闭环
 
-1. 「我的」点登录 → `wx.login` 取 `code` → `POST /api/auth/wx-login`
+1. 「我的」点登录 → `wx.login` 取 `code` → 登录接口换 token
 2. 成功后将 `token` 写入 Storage，后续请求自动带 `Authorization: Bearer …`
 3. 若登录响应只有 token，再请求 `GET /api/user/profile` 补全资料
-4. 启动时若有 token，静默拉资料；失效则清会话
-5. 业务请求 HTTP/业务码 401：清会话、提示，并跳转「我的」重新登录
-6. 退出：调 logout（失败也清本地），清空 `globalData.userInfo`
+4. 启动时若有 token，静默拉资料；失效则清会话（不强制跳转）
+5. **浏览**（概览/账单/群组列表）：未登录不请求或失败只清会话，**不跳转登录**
+6. **主动写操作**（保存账单、新建/加入群组、删除账单）：先 `requireLogin()`，未登录才跳「我的」
+7. 写接口 401 时带 `forceLoginOnUnauthorized`，引导重新登录
+8. 退出：调 logout（失败也清本地）
 
 登录接口建议返回：`{ token, user }`（也兼容 `accessToken` / `userInfo`）。
 

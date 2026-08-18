@@ -2,6 +2,7 @@ const { getBillDetail, deleteBill } = require('../../api/bill')
 const { getGroups } = require('../../api/group')
 const { formatMoney, formatDate } = require('../../utils/format')
 const { getCategoryById, ACCOUNT_TYPES } = require('../../utils/constants')
+const { requireLogin } = require('../../utils/auth')
 
 Page({
   data: {
@@ -51,6 +52,8 @@ Page({
   },
 
   onDelete() {
+    if (!requireLogin('删除账单前请先登录')) return
+
     wx.showModal({
       title: '删除账单',
       content: '删除后不可恢复，确认删除？',

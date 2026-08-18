@@ -6,6 +6,7 @@ const {
   ACCOUNT_TYPES
 } = require('../../utils/constants')
 const { formatDate } = require('../../utils/format')
+const { isLoggedIn, requireLogin } = require('../../utils/auth')
 
 Page({
   data: {
@@ -34,6 +35,14 @@ Page({
   },
 
   async loadGroups() {
+    // 未登录不拉群组列表，记账页仍可浏览；保存时再校验登录
+    if (!isLoggedIn()) {
+      this.setData({
+        groups: [],
+        groupNames: ['不计入群组']
+      })
+      return
+    }
     try {
       const { list } = await getGroups()
       const groups = list || []
@@ -104,6 +113,9 @@ Page({
   },
 
   async onSubmit() {
+    // 保存账单属于主动写操作，未登录才跳转登录
+    if (!requireLogin('保存账单前请先登录')) return
+
     const amount = Number(this.data.amount)
     if (!amount || amount <= 0) {
       wx.showToast({ title: '请输入金额', icon: 'none' })

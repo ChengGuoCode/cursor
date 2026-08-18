@@ -76,11 +76,39 @@ function applyLoginSession(raw) {
 let unauthorizedLock = false
 
 /**
- * 401 / 登录失效：清会话，提示并跳转「我的」重新登录。
- * 并发请求只处理一次，避免连弹 toast。
+ * 用户主动操作前校验登录。
+ * 未登录：提示并跳转「我的」，返回 false；已登录返回 true。
+ * 浏览类页面不要调用此方法。
  */
-function handleUnauthorized(message) {
+function requireLogin(tip) {
+  if (isLoggedIn()) return true
+  const title = tip || '请先登录'
+  if (unauthorizedLock) return false
+  unauthorizedLock = true
+  wx.showToast({ title, icon: 'none', duration: 1800 })
+  setTimeout(() => {
+    unauthorizedLock = false
+    try {
+      const pages = getCurrentPages()
+      const cur = pages[pages.length - 1]
+      if (!cur || cur.route !== 'pages/profile/profile') {
+        wx.switchTab({ url: '/pages/profile/profile' })
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }, 400)
+  return false
+}
+
+/**
+ * 鉴权失效：默认只清会话，不跳转（避免浏览列表时被强推登录）。
+ * 写操作可传 { redirect: true }，在用户主动操作失败时再引导登录。
+ */
+function handleUnauthorized(message, options = {}) {
+  const { redirect = false } = options
   clearSession()
+  if (!redirect) return
   if (unauthorizedLock) return
   unauthorizedLock = true
 
@@ -106,6 +134,7 @@ module.exports = {
   setToken,
   clearSession,
   isLoggedIn,
+  requireLogin,
   normalizeLoginResult,
   applyLoginSession,
   handleUnauthorized

@@ -46,7 +46,8 @@
       <text class="section-action">含今天往前 7 天</text>
     </view>
     <view class="soft-panel trend-panel">
-      <view class="trend-bars">
+      <view wx:if="{{guestMode}}" class="empty-wrap">登录后可查看近七日支出</view>
+      <view wx:else class="trend-bars">
         <view class="trend-col {{item.isToday ? 'today' : ''}}" wx:for="{{trend}}" wx:key="date">
           <view class="bar-wrap">
             <text class="bar-amount {{item.expense > 0 ? '' : 'is-zero'}}">{{item.amountText}}</text>
@@ -68,7 +69,10 @@
       <text class="section-action" bindtap="goBills">查看全部</text>
     </view>
     <view class="soft-panel">
-      <block wx:if="{{categoryStats.length}}">
+      <block wx:if="{{guestMode}}">
+        <view class="empty-wrap">登录后可查看收支概览</view>
+      </block>
+      <block wx:elif="{{categoryStats.length}}">
         <view class="cat-item" wx:for="{{categoryStats}}" wx:key="categoryId">
           <view class="cat-left">
             <text class="cat-icon">{{item.icon}}</text>

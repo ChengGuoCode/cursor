@@ -28,7 +28,7 @@ Page({
     }
 
     try {
-      const user = await getProfile({ skipAuthRedirect: true })
+      const user = await getProfile()
       getApp().globalData.userInfo = user
       this.setData({
         user: user || {},
@@ -73,7 +73,7 @@ Page({
           // 后端若只返回 token，再拉一次资料补全
           if (!user || !user.id) {
             try {
-              user = await getProfile({ skipAuthRedirect: true })
+              user = await getProfile()
             } catch (e) {
               user = user || {}
             }

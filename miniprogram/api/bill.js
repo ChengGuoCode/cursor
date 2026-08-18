@@ -96,7 +96,12 @@ function createBill(payload) {
     mockBills.unshift(created)
     return Promise.resolve(created)
   }
-  return request({ url: '/api/bills', method: 'POST', data: payload })
+  return request({
+    url: '/api/bills',
+    method: 'POST',
+    data: payload,
+    forceLoginOnUnauthorized: true
+  })
 }
 
 /** 更新账单 — PUT /api/bills/:id */
@@ -107,7 +112,12 @@ function updateBill(id, payload) {
     mockBills[idx] = { ...mockBills[idx], ...payload }
     return Promise.resolve({ ...mockBills[idx] })
   }
-  return request({ url: `/api/bills/${id}`, method: 'PUT', data: payload })
+  return request({
+    url: `/api/bills/${id}`,
+    method: 'PUT',
+    data: payload,
+    forceLoginOnUnauthorized: true
+  })
 }
 
 /** 删除账单 — DELETE /api/bills/:id */
@@ -117,7 +127,11 @@ function deleteBill(id) {
     if (idx >= 0) mockBills.splice(idx, 1)
     return Promise.resolve(true)
   }
-  return request({ url: `/api/bills/${id}`, method: 'DELETE' })
+  return request({
+    url: `/api/bills/${id}`,
+    method: 'DELETE',
+    forceLoginOnUnauthorized: true
+  })
 }
 
 module.exports = {

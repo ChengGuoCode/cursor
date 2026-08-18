@@ -7,7 +7,7 @@ const {
 } = require('../utils/auth')
 
 /** 获取当前用户资料 — GET /api/user/profile */
-function getProfile(options = {}) {
+function getProfile() {
   if (shouldUseMock()) {
     // Mock：有 token 才视为已登录；未登录返回空，便于闭环演示
     if (!getToken()) {
@@ -17,8 +17,7 @@ function getProfile(options = {}) {
   }
   return request({
     url: '/api/user/profile',
-    method: 'GET',
-    skipAuthRedirect: options.skipAuthRedirect === true
+    method: 'GET'
   })
 }
 
@@ -57,8 +56,7 @@ function logout() {
 
   return request({
     url: '/api/auth/logout',
-    method: 'POST',
-    skipAuthRedirect: true
+    method: 'POST'
   })
     .catch(() => true)
     .finally(() => {

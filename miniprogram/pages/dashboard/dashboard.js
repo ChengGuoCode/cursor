@@ -1,6 +1,25 @@
 const { getOverview } = require('../../api/bill')
 const { formatMoney, formatMonthLabel, formatDate } = require('../../utils/format')
 const { getCategoryById } = require('../../utils/constants')
+const { isLoggedIn } = require('../../utils/auth')
+
+function emptyOverviewState(monthLabel) {
+  return {
+    monthLabel: monthLabel || '',
+    balance: 0,
+    balanceText: '0.00',
+    expenseText: '0.00',
+    incomeText: '0.00',
+    budget: 0,
+    budgetText: '0.00',
+    budgetUsedText: '0.00',
+    budgetPercent: 0,
+    trend: [],
+    categoryStats: [],
+    recentBills: [],
+    guestMode: true
+  }
+}
 
 Page({
   data: {
@@ -17,6 +36,7 @@ Page({
     trend: [],
     categoryStats: [],
     recentBills: [],
+    guestMode: false,
     statUnit: 1,
     timeUnit: 1
   },
@@ -34,6 +54,12 @@ Page({
   },
 
   async loadOverview() {
+    // 未登录：不请求概览，展示空态（不跳转登录）
+    if (!isLoggedIn()) {
+      this.setData(emptyOverviewState(this.data.monthLabel))
+      return
+    }
+
     wx.showNavigationBarLoading()
     try {
       const data = await getOverview({
@@ -45,15 +71,14 @@ Page({
       const income = Number(data.income || 0)
       const balance = income - expense
       const budget = Number(data.budget || 0)
-      // 预算进度：前端用 支出 / 预算 计算，不依赖后端 budgetUsedRatio
       const budgetPercent =
         budget > 0 ? Math.min(100, Math.round((expense / budget) * 100)) : 0
       const trendRaw = data.trend || []
       const maxTrend = Math.max(...trendRaw.map((t) => Number(t.expense) || 0), 1)
-      // 分类占比：分子=该分类支出，分母=本期总支出；后端只需分类标识 + amount
       const categoryRaw = data.categoryStats || []
 
       this.setData({
+        guestMode: false,
         monthLabel: formatMonthLabel(data.month || this.data.month),
         balance,
         balanceText: formatMoney(balance, { withSign: true }),
@@ -63,7 +88,6 @@ Page({
         budgetText: formatMoney(budget),
         budgetUsedText: formatMoney(expense),
         budgetPercent,
-        // 始终 7 列：无支出高度为 0，不是少画几根柱
         trend: trendRaw.map((t) => {
           const value = Number(t.expense) || 0
           return {
@@ -74,7 +98,6 @@ Page({
           }
         }),
         categoryStats: categoryRaw.map((item) => {
-          // 兼容后端字段：code 或 categoryId
           const categoryKey = item.code || item.categoryId
           const cat = getCategoryById(categoryKey)
           const amount = Number(item.amount) || 0
@@ -91,7 +114,12 @@ Page({
         })
       })
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      // 浏览失败不强制登录；401 已在 request 层清会话
+      if (err && err.code === 401) {
+        this.setData(emptyOverviewState(this.data.monthLabel))
+      } else {
+        wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      }
     } finally {
       wx.hideNavigationBarLoading()
     }

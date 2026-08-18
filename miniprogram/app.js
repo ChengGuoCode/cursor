@@ -33,7 +33,7 @@ App({
     }
 
     try {
-      const user = await getProfile({ skipAuthRedirect: true })
+      const user = await getProfile()
       this.globalData.userInfo = user
     } catch (err) {
       clearSession()

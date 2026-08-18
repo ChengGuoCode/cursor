@@ -70,6 +70,10 @@
     </view>
   </block>
 
+  <view wx:elif="{{guestMode}}" class="empty-wrap soft-panel">
+    <view>登录后可查看账单明细</view>
+  </view>
+
   <view wx:else class="empty-wrap soft-panel">
     <view>这个月还没有账单</view>
     <button class="btn-primary empty-btn" bindtap="goAdd">记一笔</button>

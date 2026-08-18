@@ -2,6 +2,7 @@ const { getBills } = require('../../api/bill')
 const { getGroups } = require('../../api/group')
 const { formatMoney, formatMonthLabel, groupBillsByDate } = require('../../utils/format')
 const { getCategoryById } = require('../../utils/constants')
+const { isLoggedIn } = require('../../utils/auth')
 
 Page({
   data: {
@@ -17,7 +18,8 @@ Page({
     groups: [],
     totalExpenseText: '0.00',
     totalIncomeText: '0.00',
-    groupNameMap: {}
+    groupNameMap: {},
+    guestMode: false
   },
 
   onShow() {
@@ -33,13 +35,25 @@ Page({
   },
 
   async prepareAndLoad() {
+    // 未登录：不请求列表，不引导登录
+    if (!isLoggedIn()) {
+      this.setData({
+        guestMode: true,
+        groups: [],
+        totalExpenseText: '0.00',
+        totalIncomeText: '0.00',
+        groupNameMap: {}
+      })
+      return
+    }
+
     try {
       const { list } = await getGroups()
       const groupNameMap = {}
       ;(list || []).forEach((g) => {
         groupNameMap[g.id] = g.name
       })
-      this.setData({ groupNameMap })
+      this.setData({ groupNameMap, guestMode: false })
     } catch (e) {
       // 群组名仅作增强展示，失败可忽略
     }
@@ -47,6 +61,16 @@ Page({
   },
 
   async loadBills() {
+    if (!isLoggedIn()) {
+      this.setData({
+        guestMode: true,
+        groups: [],
+        totalExpenseText: '0.00',
+        totalIncomeText: '0.00'
+      })
+      return
+    }
+
     wx.showNavigationBarLoading()
     try {
       const res = await getBills({
@@ -80,12 +104,22 @@ Page({
       }))
 
       this.setData({
+        guestMode: false,
         groups,
         totalExpenseText: formatMoney(totalExpense),
         totalIncomeText: formatMoney(totalIncome)
       })
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      if (err && err.code === 401) {
+        this.setData({
+          guestMode: true,
+          groups: [],
+          totalExpenseText: '0.00',
+          totalIncomeText: '0.00'
+        })
+      } else {
+        wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      }
     } finally {
       wx.hideNavigationBarLoading()
     }

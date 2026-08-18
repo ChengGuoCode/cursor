@@ -47,7 +47,12 @@ function createGroup(payload) {
     mockGroups.unshift(created)
     return Promise.resolve(created)
   }
-  return request({ url: '/api/groups', method: 'POST', data: payload })
+  return request({
+    url: '/api/groups',
+    method: 'POST',
+    data: payload,
+    forceLoginOnUnauthorized: true
+  })
 }
 
 /** 加入群组 — POST /api/groups/join */
@@ -58,7 +63,8 @@ function joinGroup(inviteCode) {
   return request({
     url: '/api/groups/join',
     method: 'POST',
-    data: { inviteCode }
+    data: { inviteCode },
+    forceLoginOnUnauthorized: true
   })
 }
 
