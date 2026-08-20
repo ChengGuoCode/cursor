@@ -66,18 +66,12 @@
 
 - 请求：`POST /api/bills/page`，body 为 `PageReqDTO<BillReqDTO>`
 - 响应：`ResDTO<PageResDTO<BillResDTO>>`，列表字段为 `records`
-- `billType`：`1=支出`，`2=收入`
-- 个人模式：不传 `groupId`；群组模式：传当前选中的 `groupId`
-- 前端不传 `userId`（由后端从 token 解析）
-- 概览/账单右上角 ⇄ 切换个人/群组（`globalData.billScope`）
-
-### 后端 DTO 建议（非阻塞）
-
-1. **`userId` 不要由客户端传入**（防越权），服务端从登录态取。
-2. **`accountName` 作筛选偏脆**，长期建议 `accountId`；展示仍可用 name。
-3. **`month` 格式写死**为 `YYYY-MM`。
-4. 若需要「全部群组账单」而不指定某个群，需另加 `scope`/`onlyGroup`；当前约定是群组模式必须带具体 `groupId`。
-5. 备注搜索若不需要可保持现状；需要时再给 `BillReqDTO` 加 `keyword`。
+- `billType`：`1=收入`，`2=支出`
+- 筛选账户用 `accountId`；展示可用返回的 `accountName`
+- 个人模式：不传 `groupId`；群组模式：传用户所属某个群组的 `groupId`
+- 无所属群组时，切换按钮置灰（不可切到群组）
+- 枚举：`GET /config/category`、`GET /config/account`
+- 账单页常用筛选（月/收支）常显；账户/类目收在「更多筛选」折叠区
 
 ### 预留接口一览
 
@@ -86,7 +80,8 @@
 | POST | `/api/auth/wx-login` | code 换 token |
 | GET/PUT | `/api/user/profile` | 用户资料 |
 | GET | `/api/overview` | 仪表盘 |
-| GET/POST | `/api/bills` | 列表 / 创建 |
+| GET/POST | `/api/bills` | 详情创建等 |
+| POST | `/api/bills/page` | 分页列表 PageReqDTO |
 | GET/PUT/DELETE | `/api/bills/:id` | 详情 / 更新 / 删除 |
 | GET/POST | `/api/groups` | 群组列表 / 创建 |
 | GET | `/api/groups/:id` | 群组详情 |

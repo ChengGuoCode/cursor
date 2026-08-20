@@ -16,6 +16,13 @@ App({
 
   onLaunch() {
     this.bootstrapUser()
+    // 预拉类目/账户枚举（失败不影响启动）
+    try {
+      const { loadConfig } = require('./utils/config-store')
+      loadConfig().catch(() => {})
+    } catch (e) {
+      /* ignore */
+    }
   },
 
   /**

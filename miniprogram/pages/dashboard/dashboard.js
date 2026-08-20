@@ -1,8 +1,8 @@
 const { getOverview } = require('../../api/bill')
 const { getGroups } = require('../../api/group')
 const { formatMoney, formatMonthLabel } = require('../../utils/format')
-const { getCategoryByCode } = require('../../utils/constants')
 const { isLoggedIn } = require('../../utils/auth')
+const { loadConfig, findCategory } = require('../../utils/config-store')
 
 function emptyOverviewState(monthLabel) {
   return {
@@ -55,7 +55,9 @@ Page({
     currentGroupId: null,
     groupList: [],
     groupNames: [],
-    groupIndex: 0
+    groupIndex: 0,
+    hasGroups: false,
+    swapDisabled: true
   },
 
   onShow() {
@@ -68,30 +70,61 @@ Page({
       this.setData({ month, monthLabel: formatMonthLabel(month) })
     }
     syncScopeFromApp(this)
-    this.loadOverview()
+    this.bootstrap()
   },
 
-  async ensureGroupSelection() {
+  async bootstrap() {
+    if (!isLoggedIn()) {
+      this.setData({
+        ...emptyOverviewState(this.data.monthLabel),
+        hasGroups: false,
+        swapDisabled: true
+      })
+      return
+    }
+    try {
+      await loadConfig()
+    } catch (e) {
+      console.warn(e)
+    }
+    await this.refreshGroupAvailability()
+    await this.loadOverview()
+  },
+
+  async refreshGroupAvailability() {
     try {
       const { list } = await getGroups()
       const groupList = list || []
-      const groupNames = groupList.map((g) => g.name)
-      let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
-      let groupIndex = groupList.findIndex((g) => String(g.id) === String(currentGroupId))
-      if (groupIndex < 0) {
-        groupIndex = 0
-        currentGroupId = groupList.length ? groupList[0].id : null
-      }
-      getApp().globalData.currentGroupId = currentGroupId
+      const hasGroups = groupList.length > 0
       this.setData({
         groupList,
-        groupNames,
-        groupIndex: groupIndex < 0 ? 0 : groupIndex,
-        currentGroupId
+        groupNames: groupList.map((g) => g.name),
+        hasGroups,
+        swapDisabled: !hasGroups
       })
+      if (!hasGroups && this.data.scope === 'group') {
+        getApp().globalData.billScope = 'personal'
+        this.setData({ scope: 'personal', scopeLabel: '个人', currentGroupId: null })
+      }
     } catch (e) {
-      this.setData({ groupList: [], groupNames: [], currentGroupId: null })
+      this.setData({ hasGroups: false, swapDisabled: true, groupList: [], groupNames: [] })
     }
+  },
+
+  async ensureGroupSelection() {
+    const groupList = this.data.groupList || []
+    if (!groupList.length) {
+      this.setData({ currentGroupId: null })
+      return
+    }
+    let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
+    let groupIndex = groupList.findIndex((g) => String(g.id) === String(currentGroupId))
+    if (groupIndex < 0) {
+      groupIndex = 0
+      currentGroupId = groupList[0].id
+    }
+    getApp().globalData.currentGroupId = currentGroupId
+    this.setData({ groupIndex, currentGroupId })
   },
 
   async loadOverview() {
@@ -107,7 +140,6 @@ Page({
           ...emptyOverviewState(this.data.monthLabel),
           guestMode: false
         })
-        wx.showToast({ title: '暂无群组，请先创建或加入', icon: 'none' })
         return
       }
     }
@@ -153,7 +185,7 @@ Page({
         }),
         categoryStats: categoryRaw.map((item) => {
           const categoryKey = item.code || item.categoryCode || item.categoryId
-          const cat = getCategoryByCode(categoryKey)
+          const cat = findCategory(categoryKey)
           const amount = Number(item.amount) || 0
           return {
             ...item,
@@ -179,6 +211,10 @@ Page({
   },
 
   async onSwapScope() {
+    if (this.data.swapDisabled) {
+      wx.showToast({ title: '暂无所属群组', icon: 'none' })
+      return
+    }
     const next = this.data.scope === 'personal' ? 'group' : 'personal'
     getApp().globalData.billScope = next
     this.setData({
@@ -209,10 +245,5 @@ Page({
 
   goAdd() {
     wx.switchTab({ url: '/pages/add/add' })
-  },
-
-  goBillDetail(e) {
-    const { id } = e.currentTarget.dataset
-    wx.navigateTo({ url: `/pages/bill-detail/bill-detail?id=${id}` })
   }
 })

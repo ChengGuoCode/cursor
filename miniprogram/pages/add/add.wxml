@@ -32,10 +32,10 @@
     <view class="section-title">分类</view>
     <view class="category-grid">
       <view
-        class="category-item {{categoryId === item.id ? 'active' : ''}}"
+        class="category-item {{categoryCode === item.code ? 'active' : ''}}"
         wx:for="{{categories}}"
-        wx:key="id"
-        data-id="{{item.id}}"
+        wx:key="code"
+        data-code="{{item.code}}"
         bindtap="onCategoryPick"
       >
         <view class="category-icon" style="background: {{item.color}}22;">{{item.icon}}</view>

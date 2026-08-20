@@ -11,7 +11,11 @@
         <view class="group-picker">{{groupNames[groupIndex]}} ▾</view>
       </picker>
     </view>
-    <view class="swap-btn" bindtap="onSwapScope" hover-class="swap-btn-hover">
+    <view
+      class="swap-btn {{swapDisabled ? 'disabled' : ''}}"
+      bindtap="onSwapScope"
+      hover-class="{{swapDisabled ? '' : 'swap-btn-hover'}}"
+    >
       <view class="swap-icon">⇄</view>
       <text class="swap-text">{{scope === 'personal' ? '切群组' : '切个人'}}</text>
     </view>

@@ -20,8 +20,8 @@ const INCOME_CATEGORIES = [
 ]
 
 const BILL_TYPES = [
-  { id: 'expense', name: '支出', billType: 1 },
-  { id: 'income', name: '收入', billType: 2 }
+  { id: 'income', name: '收入', billType: 1 },
+  { id: 'expense', name: '支出', billType: 2 }
 ]
 
 const ACCOUNT_TYPES = [

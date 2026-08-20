@@ -1,17 +1,17 @@
 const { getBills } = require('../../api/bill')
 const { getGroups } = require('../../api/group')
 const { formatMoney, formatMonthLabel, groupBillsByDate } = require('../../utils/format')
-const { getCategoryByCode } = require('../../utils/constants')
 const { isLoggedIn } = require('../../utils/auth')
+const { loadConfig, findCategory } = require('../../utils/config-store')
+const { uiTypeToBillType } = require('../../utils/bill-map')
 
 function syncScopeFromApp(page) {
   const app = getApp()
   const scope = app.globalData.billScope === 'group' ? 'group' : 'personal'
-  const currentGroupId = app.globalData.currentGroupId
   page.setData({
     scope,
     scopeLabel: scope === 'group' ? '群组' : '个人',
-    currentGroupId
+    currentGroupId: app.globalData.currentGroupId
   })
 }
 
@@ -35,6 +35,18 @@ Page({
     groupList: [],
     groupNames: [],
     groupIndex: 0,
+    hasGroups: false,
+    swapDisabled: true,
+    // 筛选
+    filterExpanded: false,
+    accounts: [],
+    accountNames: ['全部账户'],
+    accountIndex: 0,
+    accountId: null,
+    categoryOptions: [{ code: '', name: '全部类目' }],
+    categoryNames: ['全部类目'],
+    categoryIndex: 0,
+    categoryCode: '',
     pageNum: 1,
     pageSize: 50,
     total: 0
@@ -50,51 +62,93 @@ Page({
       this.setData({ month, monthLabel: formatMonthLabel(month) })
     }
     syncScopeFromApp(this)
-    this.prepareAndLoad()
+    this.bootstrap()
   },
 
-  async prepareAndLoad() {
+  async bootstrap() {
     if (!isLoggedIn()) {
       this.setData({
         guestMode: true,
         dayGroups: [],
+        hasGroups: false,
+        swapDisabled: true,
         totalExpenseText: '0.00',
-        totalIncomeText: '0.00',
-        groupList: [],
-        groupNames: []
+        totalIncomeText: '0.00'
       })
       return
     }
 
-    // 群组模式需要群组列表，用于切换具体群组
+    try {
+      await loadConfig()
+      this.applyAccountOptions()
+      this.applyCategoryOptions()
+    } catch (e) {
+      console.warn('load config failed', e)
+    }
+
+    await this.refreshGroupAvailability()
     if (this.data.scope === 'group') {
       await this.ensureGroupSelection()
     }
     this.loadBills()
   },
 
-  async ensureGroupSelection() {
+  applyAccountOptions() {
+    const { getCachedAccounts } = require('../../utils/config-store')
+    const accounts = getCachedAccounts()
+    this.setData({
+      accounts,
+      accountNames: ['全部账户', ...accounts.map((a) => a.accountName)]
+    })
+  },
+
+  applyCategoryOptions() {
+    const { getCachedCategories } = require('../../utils/config-store')
+    let list = getCachedCategories()
+    if (this.data.type === 'income') list = list.filter((c) => c.type === 1)
+    if (this.data.type === 'expense') list = list.filter((c) => c.type === 2)
+    const categoryOptions = [{ code: '', name: '全部类目' }, ...list]
+    this.setData({
+      categoryOptions,
+      categoryNames: categoryOptions.map((c) => c.name)
+    })
+  },
+
+  async refreshGroupAvailability() {
     try {
       const { list } = await getGroups()
       const groupList = list || []
-      const groupNames = groupList.map((g) => g.name)
-      let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
-      let groupIndex = groupList.findIndex((g) => String(g.id) === String(currentGroupId))
-      if (groupIndex < 0) {
-        groupIndex = 0
-        currentGroupId = groupList.length ? groupList[0].id : null
-      }
-      getApp().globalData.currentGroupId = currentGroupId
+      const hasGroups = groupList.length > 0
       this.setData({
         groupList,
-        groupNames,
-        groupIndex: groupIndex < 0 ? 0 : groupIndex,
-        currentGroupId,
-        guestMode: false
+        groupNames: groupList.map((g) => g.name),
+        hasGroups,
+        swapDisabled: !hasGroups
       })
+      // 没有群组时强制回个人
+      if (!hasGroups && this.data.scope === 'group') {
+        getApp().globalData.billScope = 'personal'
+        this.setData({ scope: 'personal', scopeLabel: '个人', currentGroupId: null })
+      }
     } catch (e) {
-      this.setData({ groupList: [], groupNames: [], currentGroupId: null })
+      this.setData({ hasGroups: false, swapDisabled: true, groupList: [], groupNames: [] })
     }
+  },
+
+  async ensureGroupSelection() {
+    const groupList = this.data.groupList || []
+    if (!groupList.length) {
+      this.setData({ currentGroupId: null })
+      return
+    }
+    let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
+    let groupIndex = groupList.findIndex((g) => String(g.id) === String(currentGroupId))
+    if (groupIndex < 0) {
+      groupIndex = 0
+      currentGroupId = groupList[0].id
+    }
+    getApp().globalData.currentGroupId = currentGroupId
+    this.setData({ groupIndex, currentGroupId })
   },
 
   async loadBills() {
@@ -115,7 +169,6 @@ Page({
         totalExpenseText: '0.00',
         totalIncomeText: '0.00'
       })
-      wx.showToast({ title: '暂无群组，请先创建或加入', icon: 'none' })
       return
     }
 
@@ -124,6 +177,9 @@ Page({
       const res = await getBills({
         month: this.data.month,
         type: this.data.type,
+        billType: this.data.type === 'all' ? undefined : uiTypeToBillType(this.data.type),
+        categoryCode: this.data.categoryCode || undefined,
+        accountId: this.data.accountId,
         scope: this.data.scope,
         groupId: this.data.scope === 'group' ? this.data.currentGroupId : null,
         pageNum: this.data.pageNum,
@@ -131,7 +187,7 @@ Page({
       })
 
       const list = (res.records || res.list || []).map((bill) => {
-        const cat = getCategoryByCode(bill.categoryCode || bill.categoryId)
+        const cat = findCategory(bill.categoryCode)
         return {
           ...bill,
           icon: cat.icon,
@@ -177,19 +233,23 @@ Page({
     }
   },
 
-  /** 右上角切换个人 / 群组 */
+  onToggleFilter() {
+    this.setData({ filterExpanded: !this.data.filterExpanded })
+  },
+
   async onSwapScope() {
+    if (this.data.swapDisabled) {
+      wx.showToast({ title: '暂无所属群组', icon: 'none' })
+      return
+    }
     const next = this.data.scope === 'personal' ? 'group' : 'personal'
-    const app = getApp()
-    app.globalData.billScope = next
+    getApp().globalData.billScope = next
     this.setData({
       scope: next,
       scopeLabel: next === 'group' ? '群组' : '个人',
       pageNum: 1
     })
-    if (next === 'group') {
-      await this.ensureGroupSelection()
-    }
+    if (next === 'group') await this.ensureGroupSelection()
     this.loadBills()
   },
 
@@ -198,11 +258,7 @@ Page({
     const group = this.data.groupList[groupIndex]
     if (!group) return
     getApp().globalData.currentGroupId = group.id
-    this.setData({
-      groupIndex,
-      currentGroupId: group.id,
-      pageNum: 1
-    })
+    this.setData({ groupIndex, currentGroupId: group.id, pageNum: 1 })
     this.loadBills()
   },
 
@@ -213,7 +269,32 @@ Page({
   },
 
   onTypeChange(e) {
-    this.setData({ type: e.currentTarget.dataset.id, pageNum: 1 })
+    const type = e.currentTarget.dataset.id
+    this.setData({
+      type,
+      categoryCode: '',
+      categoryIndex: 0,
+      pageNum: 1
+    })
+    this.applyCategoryOptions()
+    this.loadBills()
+  },
+
+  onAccountChange(e) {
+    const accountIndex = Number(e.detail.value)
+    const accountId = accountIndex === 0 ? null : this.data.accounts[accountIndex - 1].accountId
+    this.setData({ accountIndex, accountId, pageNum: 1 })
+    this.loadBills()
+  },
+
+  onCategoryFilterChange(e) {
+    const categoryIndex = Number(e.detail.value)
+    const opt = this.data.categoryOptions[categoryIndex]
+    this.setData({
+      categoryIndex,
+      categoryCode: opt ? opt.code : '',
+      pageNum: 1
+    })
     this.loadBills()
   },
 

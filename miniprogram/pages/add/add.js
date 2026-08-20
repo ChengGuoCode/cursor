@@ -1,23 +1,24 @@
 const { createBill } = require('../../api/bill')
 const { getGroups } = require('../../api/group')
-const {
-  EXPENSE_CATEGORIES,
-  INCOME_CATEGORIES,
-  ACCOUNT_TYPES
-} = require('../../utils/constants')
 const { formatDate } = require('../../utils/format')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
+const {
+  loadConfig,
+  categoriesByUiType,
+  getCachedAccounts
+} = require('../../utils/config-store')
+const { uiTypeToBillType } = require('../../utils/bill-map')
 
 Page({
   data: {
     type: 'expense',
     amount: '',
     amountFocus: false,
-    categories: EXPENSE_CATEGORIES,
-    categoryId: EXPENSE_CATEGORIES[0].id,
-    accounts: ACCOUNT_TYPES,
-    accountNames: ACCOUNT_TYPES.map((a) => a.name),
-    accountIndex: 1,
+    categories: [],
+    categoryCode: '',
+    accounts: [],
+    accountNames: [],
+    accountIndex: 0,
     date: formatDate(new Date()),
     groups: [],
     groupNames: ['不计入群组'],
@@ -31,11 +32,44 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 2 })
     }
+    this.bootstrap()
+  },
+
+  async bootstrap() {
+    try {
+      await loadConfig()
+      this.refreshCategories()
+      this.refreshAccounts()
+    } catch (e) {
+      console.warn(e)
+      wx.showToast({ title: '枚举加载失败', icon: 'none' })
+    }
     this.loadGroups()
   },
 
+  refreshCategories() {
+    const categories = categoriesByUiType(this.data.type)
+    const matched = categories.find((c) => c.code === this.data.categoryCode)
+    const categoryCode =
+      (matched && matched.code) || (categories[0] && categories[0].code) || ''
+    this.setData({ categories, categoryCode })
+  },
+
+  refreshAccounts() {
+    const accounts = getCachedAccounts()
+    let accountIndex = this.data.accountIndex
+    if (accountIndex >= accounts.length) accountIndex = 0
+    // 默认微信（若存在）
+    const wechatIdx = accounts.findIndex((a) => a.accountName === '微信')
+    if (!this.data.accounts.length && wechatIdx >= 0) accountIndex = wechatIdx
+    this.setData({
+      accounts,
+      accountNames: accounts.map((a) => a.accountName),
+      accountIndex
+    })
+  },
+
   async loadGroups() {
-    // 未登录不拉群组列表，记账页仍可浏览；保存时再校验登录
     if (!isLoggedIn()) {
       this.setData({
         groups: [],
@@ -57,12 +91,8 @@ Page({
 
   onTypeChange(e) {
     const type = e.currentTarget.dataset.type
-    const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
-    this.setData({
-      type,
-      categories,
-      categoryId: categories[0].id
-    })
+    this.setData({ type })
+    this.refreshCategories()
   },
 
   onAmountInput(e) {
@@ -70,7 +100,7 @@ Page({
   },
 
   onCategoryPick(e) {
-    this.setData({ categoryId: e.currentTarget.dataset.id })
+    this.setData({ categoryCode: e.currentTarget.dataset.code })
   },
 
   onAccountChange(e) {
@@ -113,7 +143,6 @@ Page({
   },
 
   async onSubmit() {
-    // 保存账单属于主动写操作，未登录才跳转登录
     if (!requireLogin('保存账单前请先登录')) return
 
     const amount = Number(this.data.amount)
@@ -121,31 +150,36 @@ Page({
       wx.showToast({ title: '请输入金额', icon: 'none' })
       return
     }
-    if (!this.data.categoryId) {
+    if (!this.data.categoryCode) {
       wx.showToast({ title: '请选择分类', icon: 'none' })
       return
     }
-
     const account = this.data.accounts[this.data.accountIndex]
+    if (!account) {
+      wx.showToast({ title: '请选择账户', icon: 'none' })
+      return
+    }
+
     const group =
       this.data.groupIndex > 0 ? this.data.groups[this.data.groupIndex - 1] : null
 
     this.setData({ submitting: true })
     try {
       await createBill({
-        type: this.data.type,
+        billType: uiTypeToBillType(this.data.type),
         amount,
-        categoryId: this.data.categoryId,
-        accountId: account.id,
+        categoryCode: this.data.categoryCode,
+        accountId: account.accountId,
         remark: this.data.remark,
         groupId: group ? group.id : null,
-        occurredAt: `${this.data.date} 12:00`
+        billDate: this.data.date
       })
       wx.showToast({ title: '已保存', icon: 'success' })
+      const categories = categoriesByUiType(this.data.type)
       this.setData({
         amount: '',
         remark: '',
-        categoryId: this.data.categories[0].id
+        categoryCode: (categories[0] && categories[0].code) || ''
       })
       setTimeout(() => {
         wx.switchTab({ url: '/pages/bills/bills' })

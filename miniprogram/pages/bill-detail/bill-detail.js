@@ -1,7 +1,7 @@
 const { getBillDetail, deleteBill } = require('../../api/bill')
 const { formatMoney, formatDate } = require('../../utils/format')
-const { getCategoryByCode, ACCOUNT_TYPES } = require('../../utils/constants')
 const { requireLogin } = require('../../utils/auth')
+const { loadConfig, findCategory } = require('../../utils/config-store')
 
 Page({
   data: {
@@ -18,18 +18,19 @@ Page({
     if (!this.data.id) return
     wx.showLoading({ title: '加载中' })
     try {
+      try {
+        await loadConfig()
+      } catch (e) {
+        /* ignore */
+      }
       const bill = await getBillDetail(this.data.id)
-      const cat = getCategoryByCode(bill.categoryCode || bill.categoryId)
-      const account =
-        ACCOUNT_TYPES.find((a) => a.id === bill.accountName) ||
-        ACCOUNT_TYPES.find((a) => a.name === bill.accountName)
+      const cat = findCategory(bill.categoryCode)
       this.setData({
         bill: {
           ...bill,
           icon: cat.icon,
           color: cat.color,
           categoryName: cat.name,
-          accountName: account ? account.name : bill.accountName || '-',
           timeText: formatDate(bill.billDate || bill.occurredAt, 'YYYY-MM-DD'),
           amountText: formatMoney(bill.amount, { withSign: true, type: bill.type })
         }

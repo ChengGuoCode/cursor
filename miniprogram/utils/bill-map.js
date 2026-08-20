@@ -1,14 +1,14 @@
 /**
  * 账单字段约定（与后端对齐）
- * billType: 1=支出 2=收入
+ * billType: 1=收入 2=支出
  * 个人账单：请求不传 groupId
- * 群组账单：请求传 groupId
- * userId：由后端从 token 解析，前端不传
+ * 群组账单：请求传某个群组的 groupId
+ * userId / 筛选账户：用 accountId；展示可用 accountName
  */
 
 const BILL_TYPE = {
-  EXPENSE: 1,
-  INCOME: 2
+  INCOME: 1,
+  EXPENSE: 2
 }
 
 function billTypeToUi(billType) {
@@ -25,7 +25,7 @@ function uiTypeToBillType(type) {
 function mapBillRes(dto) {
   if (!dto) return null
   const type = billTypeToUi(dto.billType)
-  const categoryCode = dto.categoryCode || dto.categoryId || ''
+  const categoryCode = dto.categoryCode || ''
   return {
     id: dto.id,
     groupId: dto.groupId == null ? null : dto.groupId,
@@ -34,6 +34,7 @@ function mapBillRes(dto) {
     type,
     categoryCode,
     categoryId: categoryCode,
+    accountId: dto.accountId != null ? Number(dto.accountId) : null,
     accountName: dto.accountName || '',
     amount: Number(dto.amount || 0),
     remark: dto.remark || '',
@@ -45,25 +46,17 @@ function mapBillRes(dto) {
 
 /**
  * 组装 PageReqDTO<BillReqDTO>
- * @param {{
- *   pageNum?: number,
- *   pageSize?: number,
- *   month?: string,
- *   billType?: number,
- *   categoryCode?: string,
- *   accountName?: string,
- *   groupId?: number|string|null,
- *   scope?: 'personal'|'group'
- * }} options
  */
 function buildBillPageReq(options = {}) {
   const data = {}
   if (options.month) data.month = options.month
   if (options.billType != null) data.billType = options.billType
   if (options.categoryCode) data.categoryCode = options.categoryCode
-  if (options.accountName) data.accountName = options.accountName
+  if (options.accountId != null && options.accountId !== '') {
+    data.accountId = Number(options.accountId)
+  }
 
-  // 仅群组模式带 groupId；个人模式明确不传
+  // 仅群组模式带具体 groupId；个人模式不传
   if (options.scope === 'group' && options.groupId != null && options.groupId !== '') {
     data.groupId = Number(options.groupId)
   }

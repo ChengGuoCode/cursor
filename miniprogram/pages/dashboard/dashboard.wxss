@@ -38,6 +38,12 @@
   flex-shrink: 0;
 }
 
+.swap-btn.disabled {
+  opacity: 0.38;
+  color: var(--color-text-muted);
+  background: rgba(11, 61, 46, 0.04);
+}
+
 .swap-btn-hover {
   opacity: 0.75;
 }
