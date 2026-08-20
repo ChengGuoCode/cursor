@@ -1,7 +1,6 @@
 const { getBillDetail, deleteBill } = require('../../api/bill')
-const { getGroups } = require('../../api/group')
 const { formatMoney, formatDate } = require('../../utils/format')
-const { getCategoryById, ACCOUNT_TYPES } = require('../../utils/constants')
+const { getCategoryByCode, ACCOUNT_TYPES } = require('../../utils/constants')
 const { requireLogin } = require('../../utils/auth')
 
 Page({
@@ -20,27 +19,18 @@ Page({
     wx.showLoading({ title: '加载中' })
     try {
       const bill = await getBillDetail(this.data.id)
-      const cat = getCategoryById(bill.categoryId)
-      const account = ACCOUNT_TYPES.find((a) => a.id === bill.accountId)
-      let groupName = ''
-      if (bill.groupId) {
-        try {
-          const { list } = await getGroups()
-          const g = (list || []).find((item) => item.id === bill.groupId)
-          groupName = g ? g.name : ''
-        } catch (e) {
-          /* ignore */
-        }
-      }
+      const cat = getCategoryByCode(bill.categoryCode || bill.categoryId)
+      const account =
+        ACCOUNT_TYPES.find((a) => a.id === bill.accountName) ||
+        ACCOUNT_TYPES.find((a) => a.name === bill.accountName)
       this.setData({
         bill: {
           ...bill,
           icon: cat.icon,
           color: cat.color,
           categoryName: cat.name,
-          accountName: account ? account.name : bill.accountId || '-',
-          groupName,
-          timeText: formatDate(bill.occurredAt, 'YYYY-MM-DD HH:mm'),
+          accountName: account ? account.name : bill.accountName || '-',
+          timeText: formatDate(bill.billDate || bill.occurredAt, 'YYYY-MM-DD'),
           amountText: formatMoney(bill.amount, { withSign: true, type: bill.type })
         }
       })

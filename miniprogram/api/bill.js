@@ -1,89 +1,141 @@
 const { request, shouldUseMock } = require('../utils/request')
 const { mockBills, mockOverview } = require('../utils/mock')
+const {
+  buildBillPageReq,
+  mapBillRes,
+  uiTypeToBillType,
+  BILL_TYPE
+} = require('../utils/bill-map')
 
 /**
- * 概览仪表盘 — GET /api/overview
- * @param {{ month?: string }} params  month=YYYY-MM
- * @returns {Promise<{
- *   month: string,
- *   expense: number,
- *   income: number,
- *   budget: number,
- *   recentBills: array,
- *   categoryStats: Array<{ code?: string, categoryId?: string, amount: number }>,
- *   trend: Array<{ date: string, label: string, weekday: string, expense: number, isToday?: boolean }>
- * }>}
- * 预算进度、分类占比由前端根据 expense/budget、amount/expense 自行计算，后端无需返回 ratio。
- * categoryStats 分类标识字段可为 code 或 categoryId。
- * trend：近七日滚动窗口（含今天共 7 天），按日期升序；无支出日 expense=0，仍返回该天。
+ * 概览仪表盘 — GET /api/bill/overview
+ * 个人：不传 groupId；群组：传 groupId
  */
 function getOverview(params = {}) {
-  if (shouldUseMock()) {
-    return Promise.resolve({ ...mockOverview, ...params })
+  const query = {
+    month: params.month,
+    statUnit: params.statUnit,
+    timeUnit: params.timeUnit
   }
-  return request({ url: '/api/bill/overview', method: 'GET', data: params })
+  if (params.scope === 'group' && params.groupId != null && params.groupId !== '') {
+    query.groupId = params.groupId
+  }
+
+  if (shouldUseMock()) {
+    // Mock：按个人/群组粗过滤支出趋势等（简化）
+    const overview = { ...mockOverview, month: params.month || mockOverview.month }
+    return Promise.resolve(overview)
+  }
+  return request({ url: '/api/bill/overview', method: 'GET', data: query })
 }
 
 /**
- * 账单列表 — GET /api/bills
- * @param {{
- *   month?: string,
- *   type?: 'expense'|'income'|'all',
- *   categoryId?: string,
- *   groupId?: string,
- *   keyword?: string,
- *   page?: number,
- *   pageSize?: number
- * }} params
+ * 账单分页列表 — POST /api/bills/page
+ * 入参：PageReqDTO<BillReqDTO>
+ * 响应：ResDTO<PageResDTO<BillResDTO>> → 解包后为 PageResDTO
  */
 function getBills(params = {}) {
+  const billType =
+    params.billType != null
+      ? params.billType
+      : uiTypeToBillType(params.type === 'all' ? undefined : params.type)
+
+  const pageReq = buildBillPageReq({
+    pageNum: params.pageNum || params.page || 1,
+    pageSize: params.pageSize || 50,
+    month: params.month,
+    billType,
+    categoryCode: params.categoryCode || params.categoryId,
+    accountName: params.accountName,
+    scope: params.scope || 'personal',
+    groupId: params.groupId
+  })
+
   if (shouldUseMock()) {
-    let list = [...mockBills]
-    if (params.type && params.type !== 'all') {
-      list = list.filter((b) => b.type === params.type)
+    let list = mockBills.map((b) =>
+      mapBillRes({
+        id: b.id,
+        groupId: b.groupId,
+        userId: b.createdBy,
+        billType: b.type === 'income' ? BILL_TYPE.INCOME : BILL_TYPE.EXPENSE,
+        categoryCode: b.categoryId,
+        accountName: b.accountId,
+        amount: b.amount,
+        remark: b.remark,
+        billDate: (b.occurredAt || '').slice(0, 10),
+        createTime: b.occurredAt
+      })
+    )
+
+    if (pageReq.data.billType != null) {
+      list = list.filter((b) => b.billType === pageReq.data.billType)
     }
-    if (params.categoryId) {
-      list = list.filter((b) => b.categoryId === params.categoryId)
+    if (pageReq.data.categoryCode) {
+      list = list.filter((b) => b.categoryCode === pageReq.data.categoryCode)
     }
-    if (params.groupId) {
-      list = list.filter((b) => b.groupId === params.groupId)
+    if (pageReq.data.groupId != null) {
+      list = list.filter((b) => String(b.groupId) === String(pageReq.data.groupId))
+    } else {
+      // 个人：无 groupId
+      list = list.filter((b) => b.groupId == null || b.groupId === '')
     }
-    if (params.keyword) {
-      const kw = params.keyword.trim()
-      list = list.filter((b) => (b.remark || '').includes(kw))
-    }
+
+    const pageNum = pageReq.pageNum
+    const pageSize = pageReq.pageSize
+    const total = list.length
+    const start = (pageNum - 1) * pageSize
+    const records = list.slice(start, start + pageSize)
+
     return Promise.resolve({
-      list,
-      total: list.length,
-      page: params.page || 1,
-      pageSize: params.pageSize || 20
+      total,
+      totalPage: Math.ceil(total / pageSize) || 1,
+      pageNum,
+      pageSize,
+      records,
+      // 兼容旧字段
+      list: records
     })
   }
-  return request({ url: '/api/bills', method: 'GET', data: params })
+
+  return request({
+    url: '/api/bills/page',
+    method: 'POST',
+    data: pageReq
+  }).then((page) => {
+    const records = (page.records || []).map(mapBillRes)
+    return {
+      ...page,
+      records,
+      list: records
+    }
+  })
 }
 
 /** 账单详情 — GET /api/bills/:id */
 function getBillDetail(id) {
   if (shouldUseMock()) {
-    const bill = mockBills.find((b) => b.id === id)
-    return bill
-      ? Promise.resolve({ ...bill })
-      : Promise.reject(new Error('账单不存在'))
+    const bill = mockBills.find((b) => String(b.id) === String(id))
+    if (!bill) return Promise.reject(new Error('账单不存在'))
+    return Promise.resolve(
+      mapBillRes({
+        id: bill.id,
+        groupId: bill.groupId,
+        userId: bill.createdBy,
+        billType: bill.type === 'income' ? BILL_TYPE.INCOME : BILL_TYPE.EXPENSE,
+        categoryCode: bill.categoryId,
+        accountName: bill.accountId,
+        amount: bill.amount,
+        remark: bill.remark,
+        billDate: (bill.occurredAt || '').slice(0, 10),
+        createTime: bill.occurredAt
+      })
+    )
   }
-  return request({ url: `/api/bills/${id}`, method: 'GET' })
+  return request({ url: `/api/bills/${id}`, method: 'GET' }).then(mapBillRes)
 }
 
 /**
  * 创建账单 — POST /api/bills
- * @param {{
- *   type: 'expense'|'income',
- *   amount: number,
- *   categoryId: string,
- *   accountId?: string,
- *   remark?: string,
- *   groupId?: string|null,
- *   occurredAt?: string
- * }} payload
  */
 function createBill(payload) {
   if (shouldUseMock()) {
@@ -107,7 +159,7 @@ function createBill(payload) {
 /** 更新账单 — PUT /api/bills/:id */
 function updateBill(id, payload) {
   if (shouldUseMock()) {
-    const idx = mockBills.findIndex((b) => b.id === id)
+    const idx = mockBills.findIndex((b) => String(b.id) === String(id))
     if (idx < 0) return Promise.reject(new Error('账单不存在'))
     mockBills[idx] = { ...mockBills[idx], ...payload }
     return Promise.resolve({ ...mockBills[idx] })
@@ -123,7 +175,7 @@ function updateBill(id, payload) {
 /** 删除账单 — DELETE /api/bills/:id */
 function deleteBill(id) {
   if (shouldUseMock()) {
-    const idx = mockBills.findIndex((b) => b.id === id)
+    const idx = mockBills.findIndex((b) => String(b.id) === String(id))
     if (idx >= 0) mockBills.splice(idx, 1)
     return Promise.resolve(true)
   }

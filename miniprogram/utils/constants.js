@@ -20,8 +20,8 @@ const INCOME_CATEGORIES = [
 ]
 
 const BILL_TYPES = [
-  { id: 'expense', name: '支出' },
-  { id: 'income', name: '收入' }
+  { id: 'expense', name: '支出', billType: 1 },
+  { id: 'income', name: '收入', billType: 2 }
 ]
 
 const ACCOUNT_TYPES = [
@@ -40,10 +40,16 @@ function getCategoryById(id) {
   )
 }
 
+/** 兼容 categoryCode / categoryId */
+function getCategoryByCode(code) {
+  return getCategoryById(code)
+}
+
 module.exports = {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
   BILL_TYPES,
   ACCOUNT_TYPES,
-  getCategoryById
+  getCategoryById,
+  getCategoryByCode
 }

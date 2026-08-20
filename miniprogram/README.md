@@ -62,6 +62,23 @@
 
 登录接口约定：`ResDTO.ok(token)` → `{ code: 0, msg: "success", data: "<jwt>" }`。
 
+### 账单列表约定
+
+- 请求：`POST /api/bills/page`，body 为 `PageReqDTO<BillReqDTO>`
+- 响应：`ResDTO<PageResDTO<BillResDTO>>`，列表字段为 `records`
+- `billType`：`1=支出`，`2=收入`
+- 个人模式：不传 `groupId`；群组模式：传当前选中的 `groupId`
+- 前端不传 `userId`（由后端从 token 解析）
+- 概览/账单右上角 ⇄ 切换个人/群组（`globalData.billScope`）
+
+### 后端 DTO 建议（非阻塞）
+
+1. **`userId` 不要由客户端传入**（防越权），服务端从登录态取。
+2. **`accountName` 作筛选偏脆**，长期建议 `accountId`；展示仍可用 name。
+3. **`month` 格式写死**为 `YYYY-MM`。
+4. 若需要「全部群组账单」而不指定某个群，需另加 `scope`/`onlyGroup`；当前约定是群组模式必须带具体 `groupId`。
+5. 备注搜索若不需要可保持现状；需要时再给 `BillReqDTO` 加 `keyword`。
+
 ### 预留接口一览
 
 | 方法 | 路径 | 说明 |

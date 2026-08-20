@@ -1,4 +1,22 @@
 <view class="page dashboard">
+  <view class="scope-bar">
+    <view class="scope-left">
+      <text class="scope-title">{{scopeLabel}}概览</text>
+      <picker
+        wx:if="{{scope === 'group' && groupNames.length}}"
+        range="{{groupNames}}"
+        value="{{groupIndex}}"
+        bindchange="onGroupPick"
+      >
+        <view class="group-picker">{{groupNames[groupIndex]}} ▾</view>
+      </picker>
+    </view>
+    <view class="swap-btn" bindtap="onSwapScope" hover-class="swap-btn-hover">
+      <view class="swap-icon">⇄</view>
+      <text class="swap-text">{{scope === 'personal' ? '切群组' : '切个人'}}</text>
+    </view>
+  </view>
+
   <view class="hero soft-panel">
     <view class="hero-top">
       <view>

@@ -11,7 +11,6 @@
   <view class="soft-panel info-panel">
     <view class="row"><text>时间</text><text>{{bill.timeText}}</text></view>
     <view class="row"><text>账户</text><text>{{bill.accountName}}</text></view>
-    <view class="row" wx:if="{{bill.groupId}}"><text>群组</text><text>{{bill.groupName || bill.groupId}}</text></view>
     <view class="row"><text>备注</text><text>{{bill.remark || '无'}}</text></view>
   </view>
 

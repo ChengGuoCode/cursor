@@ -1,6 +1,7 @@
 const { getOverview } = require('../../api/bill')
-const { formatMoney, formatMonthLabel, formatDate } = require('../../utils/format')
-const { getCategoryById } = require('../../utils/constants')
+const { getGroups } = require('../../api/group')
+const { formatMoney, formatMonthLabel } = require('../../utils/format')
+const { getCategoryByCode } = require('../../utils/constants')
 const { isLoggedIn } = require('../../utils/auth')
 
 function emptyOverviewState(monthLabel) {
@@ -21,6 +22,16 @@ function emptyOverviewState(monthLabel) {
   }
 }
 
+function syncScopeFromApp(page) {
+  const app = getApp()
+  const scope = app.globalData.billScope === 'group' ? 'group' : 'personal'
+  page.setData({
+    scope,
+    scopeLabel: scope === 'group' ? '群组' : '个人',
+    currentGroupId: app.globalData.currentGroupId
+  })
+}
+
 Page({
   data: {
     month: '',
@@ -38,7 +49,13 @@ Page({
     recentBills: [],
     guestMode: false,
     statUnit: 1,
-    timeUnit: 1
+    timeUnit: 1,
+    scope: 'personal',
+    scopeLabel: '个人',
+    currentGroupId: null,
+    groupList: [],
+    groupNames: [],
+    groupIndex: 0
   },
 
   onShow() {
@@ -50,14 +67,49 @@ Page({
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
       this.setData({ month, monthLabel: formatMonthLabel(month) })
     }
+    syncScopeFromApp(this)
     this.loadOverview()
   },
 
+  async ensureGroupSelection() {
+    try {
+      const { list } = await getGroups()
+      const groupList = list || []
+      const groupNames = groupList.map((g) => g.name)
+      let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
+      let groupIndex = groupList.findIndex((g) => String(g.id) === String(currentGroupId))
+      if (groupIndex < 0) {
+        groupIndex = 0
+        currentGroupId = groupList.length ? groupList[0].id : null
+      }
+      getApp().globalData.currentGroupId = currentGroupId
+      this.setData({
+        groupList,
+        groupNames,
+        groupIndex: groupIndex < 0 ? 0 : groupIndex,
+        currentGroupId
+      })
+    } catch (e) {
+      this.setData({ groupList: [], groupNames: [], currentGroupId: null })
+    }
+  },
+
   async loadOverview() {
-    // 未登录：不请求概览，展示空态（不跳转登录）
     if (!isLoggedIn()) {
       this.setData(emptyOverviewState(this.data.monthLabel))
       return
+    }
+
+    if (this.data.scope === 'group') {
+      await this.ensureGroupSelection()
+      if (!this.data.currentGroupId) {
+        this.setData({
+          ...emptyOverviewState(this.data.monthLabel),
+          guestMode: false
+        })
+        wx.showToast({ title: '暂无群组，请先创建或加入', icon: 'none' })
+        return
+      }
     }
 
     wx.showNavigationBarLoading()
@@ -65,7 +117,9 @@ Page({
       const data = await getOverview({
         month: this.data.month,
         statUnit: this.data.statUnit,
-        timeUnit: this.data.timeUnit
+        timeUnit: this.data.timeUnit,
+        scope: this.data.scope,
+        groupId: this.data.scope === 'group' ? this.data.currentGroupId : null
       })
       const expense = Number(data.expense || 0)
       const income = Number(data.income || 0)
@@ -98,8 +152,8 @@ Page({
           }
         }),
         categoryStats: categoryRaw.map((item) => {
-          const categoryKey = item.code || item.categoryId
-          const cat = getCategoryById(categoryKey)
+          const categoryKey = item.code || item.categoryCode || item.categoryId
+          const cat = getCategoryByCode(categoryKey)
           const amount = Number(item.amount) || 0
           return {
             ...item,
@@ -114,7 +168,6 @@ Page({
         })
       })
     } catch (err) {
-      // 浏览失败不强制登录；401 已在 request 层清会话
       if (err && err.code === 401) {
         this.setData(emptyOverviewState(this.data.monthLabel))
       } else {
@@ -123,6 +176,25 @@ Page({
     } finally {
       wx.hideNavigationBarLoading()
     }
+  },
+
+  async onSwapScope() {
+    const next = this.data.scope === 'personal' ? 'group' : 'personal'
+    getApp().globalData.billScope = next
+    this.setData({
+      scope: next,
+      scopeLabel: next === 'group' ? '群组' : '个人'
+    })
+    await this.loadOverview()
+  },
+
+  onGroupPick(e) {
+    const groupIndex = Number(e.detail.value)
+    const group = this.data.groupList[groupIndex]
+    if (!group) return
+    getApp().globalData.currentGroupId = group.id
+    this.setData({ groupIndex, currentGroupId: group.id })
+    this.loadOverview()
   },
 
   onMonthChange(e) {

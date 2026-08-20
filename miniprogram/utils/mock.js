@@ -59,7 +59,7 @@ const mockBills = [
     categoryId: 'shopping',
     accountId: 'alipay',
     remark: '日用品',
-    groupId: 'g1',
+    groupId: 1,
     occurredAt: daysAgo(2),
     createdBy: 'u_1001'
   },
@@ -70,7 +70,7 @@ const mockBills = [
     categoryId: 'entertainment',
     accountId: 'wechat',
     remark: '电影票',
-    groupId: 'g1',
+    groupId: 1,
     occurredAt: daysAgo(3),
     createdBy: 'u_1002'
   },
@@ -100,7 +100,7 @@ const mockBills = [
 
 const mockGroups = [
   {
-    id: 'g1',
+    id: 1,
     name: '合租小家',
     coverColor: '#1F6B4F',
     memberCount: 3,
@@ -110,7 +110,7 @@ const mockGroups = [
     updatedAt: daysAgo(1)
   },
   {
-    id: 'g2',
+    id: 2,
     name: '周末出游',
     coverColor: '#2F6F8F',
     memberCount: 5,

@@ -1,3 +1,57 @@
+.scope-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  gap: 16rpx;
+}
+
+.scope-left {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  min-width: 0;
+}
+
+.scope-title {
+  font-size: 36rpx;
+  font-weight: 650;
+  color: var(--color-brand);
+}
+
+.group-picker {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(11, 61, 46, 0.06);
+}
+
+.swap-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(11, 61, 46, 0.08);
+  color: var(--color-brand);
+  flex-shrink: 0;
+}
+
+.swap-btn-hover {
+  opacity: 0.75;
+}
+
+.swap-icon {
+  font-size: 30rpx;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.swap-text {
+  font-size: 22rpx;
+}
+
 .hero {
   background:
     linear-gradient(145deg, rgba(11, 61, 46, 0.96), rgba(31, 107, 79, 0.88)),
