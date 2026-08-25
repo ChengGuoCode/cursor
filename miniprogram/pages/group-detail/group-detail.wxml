@@ -1,61 +1,71 @@
-<view class="page" wx:if="{{group}}">
-  <view class="soft-panel hero" style="--cover: {{group.coverColor}};">
-    <view class="name">{{group.name}}</view>
-    <view class="meta">{{group.memberCount}} 位成员 · 本月支出 ¥{{group.monthExpenseText}}</view>
-    <view class="balance-line">
-      <text>我的结余</text>
-      <text class="amount amount-md {{group.myBalance >= 0 ? 'amount-income' : 'amount-expense'}}">
-        {{group.balanceText}}
-      </text>
+<view class="page detail-page" wx:if="{{group}}">
+  <view class="soft-panel hero">
+    <view class="name">{{group.groupName}}</view>
+    <view class="meta">{{members.length}} 位成员</view>
+    <view class="invite-row" wx:if="{{group.inviteCode}}">
+      <text class="invite-label">邀请码</text>
+      <text class="invite-code" bindtap="copyInvite">{{group.inviteCode}}</text>
+      <text class="invite-copy" bindtap="copyInvite">复制</text>
     </view>
   </view>
 
   <view class="section">
     <view class="section-head">
       <text class="section-title">成员</text>
+      <text class="section-action" bindtap="onEditMyName">改我的昵称</text>
     </view>
     <view class="soft-panel member-list">
-      <view class="member" wx:for="{{group.members}}" wx:key="id">
-        <view class="member-avatar">{{item.nickname.slice(0,1)}}</view>
+      <view
+        class="member"
+        wx:for="{{members}}"
+        wx:key="groupMemberId"
+        data-index="{{index}}"
+        bindtap="onMemberAction"
+      >
+        <view class="member-avatar">{{item.avatarText}}</view>
         <view class="member-main">
-          <text class="member-name">{{item.nickname}}</text>
-          <text class="member-role">{{item.role === 'owner' ? '创建者' : '成员'}}</text>
+          <text class="member-name">{{item.memberName || '未命名'}}</text>
+          <text class="member-role">{{item.roleLabel}}</text>
         </view>
+        <text wx:if="{{isOwner}}" class="member-more">⋮</text>
+      </view>
+      <view wx:if="{{!members.length}}" class="empty-wrap">暂无成员</view>
+    </view>
+  </view>
+
+  <view class="section" wx:if="{{canManage}}">
+    <view class="section-head">
+      <text class="section-title">管理</text>
+    </view>
+    <view class="soft-panel action-list">
+      <view class="action-row" bindtap="goApplyList">
+        <text>入群申请</text>
+        <text class="action-arrow">›</text>
+      </view>
+      <view class="action-row" wx:if="{{isOwner}}" bindtap="onRename">
+        <text>修改群名称</text>
+        <text class="action-arrow">›</text>
+      </view>
+      <view class="action-row" wx:if="{{isOwner}}" bindtap="onRefreshInvite">
+        <text>刷新邀请码</text>
+        <text class="action-arrow">›</text>
+      </view>
+      <view class="action-row danger" wx:if="{{isOwner}}" bindtap="onDissolve">
+        <text>解散群组</text>
+        <text class="action-arrow">›</text>
       </view>
     </view>
   </view>
 
-  <view class="section">
-    <view class="section-head">
-      <text class="section-title">结算建议</text>
-      <text class="section-action" bindtap="loadSettlement">刷新</text>
-    </view>
-    <view class="soft-panel">
-      <block wx:if="{{suggestions.length}}">
-        <view class="suggest" wx:for="{{suggestions}}" wx:key="index">
-          <text>{{item.from}} → {{item.to}}</text>
-          <text class="amount amount-sm amount-expense">¥{{item.amountText}}</text>
-        </view>
-      </block>
-      <view wx:else class="empty-wrap">暂无待结算</view>
-    </view>
+  <view class="footer-actions" wx:if="{{!isOwner}}">
+    <button class="btn-ghost exit-btn" bindtap="onExit">退出群组</button>
   </view>
+</view>
 
-  <view class="section">
-    <view class="section-head">
-      <text class="section-title">群组账单</text>
-    </view>
-    <view class="soft-panel">
-      <block wx:if="{{recentBills.length}}">
-        <view class="bill-row" wx:for="{{recentBills}}" wx:key="id">
-          <view class="bill-main">
-            <view class="bill-title">{{item.categoryName}}</view>
-            <view class="bill-sub">{{item.remark || '无备注'}} · {{item.timeText}}</view>
-          </view>
-          <view class="amount amount-sm amount-expense">{{item.amountText}}</view>
-        </view>
-      </block>
-      <view wx:else class="empty-wrap">还没有群组账单</view>
-    </view>
-  </view>
+<view class="page" wx:elif="{{loading}}">
+  <view class="empty-wrap">加载中…</view>
+</view>
+
+<view class="page" wx:else>
+  <view class="empty-wrap soft-panel">暂无当前群组信息</view>
 </view>

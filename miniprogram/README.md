@@ -74,20 +74,37 @@
 - 枚举：`GET /config/category`、`GET /config/account`
 - 账单页常用筛选（月/收支）常显；账户/类目收在「更多筛选」折叠区
 
+### 群组约定
+
+对接 `GroupController`（`/api/group`）：
+
+- `POST /create`：创建（`groupName`，可选 `memberName`）
+- `POST /update`：群主更新（改名、解散 `status=0`、转让 `ownerUserId`、刷新邀请码、成员升降/移除）
+- `GET /list`：我加入的群组
+- `GET /select`：当前群组（含 `groupMembers`）
+- `GET /listApply`：入群申请（可选 `applyStatus`：0待审 / 1通过 / 2拒绝）
+- `POST /apply`：邀请码申请；`POST /cancelApply`：取消；`POST /review`：审核
+- `POST /updateMemberName`：改群昵称；`POST /exit`：退出
+- `roleType`：`1群主 / 2管理员 / 3成员`；成员与群组 `status`：`1正常 / 0退出或解散`
+
 ### 预留接口一览
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| POST | `/api/auth/wx-login` | code 换 token |
+| GET | `/api/user/login` | code 换 token |
 | GET/PUT | `/api/user/profile` | 用户资料 |
-| GET | `/api/overview` | 仪表盘 |
-| GET/POST | `/api/bills` | 详情创建等 |
-| POST | `/api/bills/page` | 分页列表 PageReqDTO |
-| GET/PUT/DELETE | `/api/bills/:id` | 详情 / 更新 / 删除 |
-| GET/POST | `/api/groups` | 群组列表 / 创建 |
-| GET | `/api/groups/:id` | 群组详情 |
-| POST | `/api/groups/join` | 邀请码加入 |
-| GET | `/api/groups/:id/settlement` | 结算建议 |
+| GET | `/api/bill/overview` | 仪表盘 |
+| POST | `/api/bill/page` | 账单分页 |
+| GET | `/api/group/list` | 群组列表 |
+| GET | `/api/group/select` | 当前群组详情 |
+| POST | `/api/group/create` | 创建群组 |
+| POST | `/api/group/update` | 更新群组 |
+| POST | `/api/group/apply` | 申请加入 |
+| GET | `/api/group/listApply` | 申请列表 |
+| POST | `/api/group/review` | 审核申请 |
+| POST | `/api/group/cancelApply` | 取消申请 |
+| POST | `/api/group/updateMemberName` | 更新群昵称 |
+| POST | `/api/group/exit` | 退出群组 |
 
 ## 本地运行
 

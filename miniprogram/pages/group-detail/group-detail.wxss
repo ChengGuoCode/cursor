@@ -1,5 +1,5 @@
 .hero {
-  background: linear-gradient(145deg, var(--cover, #0B3D2E), rgba(11, 61, 46, 0.85));
+  background: linear-gradient(145deg, var(--color-brand), rgba(11, 61, 46, 0.88));
   color: #fff;
   border: none;
 }
@@ -15,17 +15,36 @@
   opacity: 0.85;
 }
 
-.balance-line {
+.invite-row {
   margin-top: 28rpx;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 16rpx;
   font-size: 26rpx;
 }
 
-.hero .amount-income,
-.hero .amount-expense {
-  color: #fff;
+.invite-label {
+  opacity: 0.8;
+}
+
+.invite-code {
+  font-family: "DIN Alternate", "Helvetica Neue", sans-serif;
+  letter-spacing: 2rpx;
+  font-weight: 650;
+}
+
+.invite-copy {
+  margin-left: auto;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 22rpx;
+}
+
+.hint {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  opacity: 0.75;
 }
 
 .member {
@@ -52,6 +71,7 @@
 }
 
 .member-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4rpx;
@@ -67,37 +87,45 @@
   color: var(--color-text-muted);
 }
 
-.suggest {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18rpx 0;
-  font-size: 28rpx;
-}
-
-.suggest + .suggest {
-  border-top: 1rpx solid var(--color-border);
-}
-
-.bill-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16rpx;
-  padding: 18rpx 0;
-}
-
-.bill-row + .bill-row {
-  border-top: 1rpx solid var(--color-border);
-}
-
-.bill-title {
-  font-size: 28rpx;
-  font-weight: 560;
-}
-
-.bill-sub {
-  margin-top: 4rpx;
-  font-size: 22rpx;
+.member-more {
   color: var(--color-text-muted);
+  font-size: 32rpx;
+  padding: 0 8rpx;
+}
+
+.action-list {
+  padding-top: 8rpx;
+  padding-bottom: 8rpx;
+}
+
+.action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 26rpx 0;
+  font-size: 28rpx;
+  color: var(--color-text);
+}
+
+.action-row + .action-row {
+  border-top: 1rpx solid var(--color-border);
+}
+
+.action-row.danger {
+  color: var(--color-expense);
+}
+
+.action-arrow {
+  color: var(--color-text-muted);
+}
+
+.footer-actions {
+  margin-top: 48rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.exit-btn {
+  min-width: 280rpx;
+  text-align: center;
 }

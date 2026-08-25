@@ -1,36 +1,39 @@
 <view class="page groups-page">
   <view class="head">
     <view>
-      <view class="page-title">一起算清楚</view>
-      <view class="page-subtitle">合租、出游、聚餐的共同开销</view>
+      <view class="page-title">群组</view>
+      <view class="page-subtitle">合租、出游、聚餐一起记账</view>
     </view>
     <view class="head-actions">
-      <view class="btn-ghost mini" bindtap="onJoin">加入</view>
-      <view class="btn-primary mini" bindtap="onCreate">新建</view>
+      <view class="btn-ghost mini" bindtap="openApply">申请加入</view>
+      <view class="btn-primary mini" bindtap="openCreate">新建</view>
     </view>
+  </view>
+
+  <view class="link-row" wx:if="{{!guestMode}}" bindtap="goApplyList">
+    <text>入群申请</text>
+    <text class="link-arrow">查看 ›</text>
   </view>
 
   <block wx:if="{{groups.length}}">
     <view
-      class="group-card"
+      class="group-card {{item.isCurrent ? 'is-current' : ''}}"
       wx:for="{{groups}}"
-      wx:key="id"
-      style="--cover: {{item.coverColor}};"
-      data-id="{{item.id}}"
+      wx:key="groupId"
+      data-id="{{item.groupId}}"
       bindtap="goDetail"
     >
-      <view class="group-cover"></view>
       <view class="group-body">
         <view class="group-top">
-          <text class="group-name">{{item.name}}</text>
-          <text class="group-role">{{item.role === 'owner' ? '创建者' : '成员'}}</text>
+          <text class="group-name">{{item.groupName}}</text>
+          <view class="tag-row">
+            <text wx:if="{{item.isCurrent}}" class="group-tag current">当前</text>
+            <text wx:if="{{item.roleLabel}}" class="group-tag">{{item.roleLabel}}</text>
+          </view>
         </view>
-        <view class="group-meta">{{item.memberCount}} 人 · 本月支出 ¥{{item.monthExpenseText}}</view>
-        <view class="group-balance">
-          <text>我的结余</text>
-          <text class="amount amount-sm {{item.myBalance >= 0 ? 'amount-income' : 'amount-expense'}}">
-            {{item.balanceText}}
-          </text>
+        <view class="group-meta">
+          {{item.memberCount || 0}} 人
+          <text wx:if="{{item.inviteCode}}"> · 邀请码 {{item.inviteCode}}</text>
         </view>
       </view>
     </view>
@@ -38,12 +41,74 @@
 
   <view wx:elif="{{guestMode}}" class="empty-wrap soft-panel">
     <view>登录后可查看群组</view>
-    <view class="page-subtitle">浏览无需登录；新建或加入时会引导登录</view>
+    <view class="page-subtitle">浏览无需登录；新建或申请时会引导登录</view>
   </view>
 
   <view wx:else class="empty-wrap soft-panel">
     <view>还没有群组</view>
-    <view class="page-subtitle">创建一个，邀请室友或朋友一起记账</view>
-    <button class="btn-primary empty-btn" bindtap="onCreate">新建群组</button>
+    <view class="page-subtitle">创建一个，或用邀请码申请加入</view>
+    <button class="btn-primary empty-btn" bindtap="openCreate">新建群组</button>
+  </view>
+
+  <!-- 新建群组 -->
+  <view class="mask" wx:if="{{panel === 'create'}}" bindtap="closePanel">
+    <view class="sheet soft-panel" catchtap="">
+      <view class="sheet-title">新建群组</view>
+      <view class="field">
+        <text class="field-label">群组名称</text>
+        <input
+          class="field-input"
+          placeholder="例如：合租小家"
+          value="{{createName}}"
+          maxlength="30"
+          bindinput="onCreateNameInput"
+        />
+      </view>
+      <view class="field">
+        <text class="field-label">我的群昵称（选填）</text>
+        <input
+          class="field-input"
+          placeholder="不填则用默认昵称"
+          value="{{createMemberName}}"
+          maxlength="20"
+          bindinput="onCreateMemberInput"
+        />
+      </view>
+      <view class="sheet-actions">
+        <view class="btn-ghost" bindtap="closePanel">取消</view>
+        <view class="btn-primary {{submitting ? 'is-disabled' : ''}}" bindtap="submitCreate">创建</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 申请加入 -->
+  <view class="mask" wx:if="{{panel === 'apply'}}" bindtap="closePanel">
+    <view class="sheet soft-panel" catchtap="">
+      <view class="sheet-title">申请加入</view>
+      <view class="field">
+        <text class="field-label">邀请码</text>
+        <input
+          class="field-input"
+          placeholder="输入群组邀请码"
+          value="{{inviteCode}}"
+          maxlength="32"
+          bindinput="onInviteInput"
+        />
+      </view>
+      <view class="field">
+        <text class="field-label">申请留言（选填）</text>
+        <input
+          class="field-input"
+          placeholder="跟群主打个招呼"
+          value="{{applyMsg}}"
+          maxlength="50"
+          bindinput="onApplyMsgInput"
+        />
+      </view>
+      <view class="sheet-actions">
+        <view class="btn-ghost" bindtap="closePanel">取消</view>
+        <view class="btn-primary {{submitting ? 'is-disabled' : ''}}" bindtap="submitApply">提交</view>
+      </view>
+    </view>
   </view>
 </view>

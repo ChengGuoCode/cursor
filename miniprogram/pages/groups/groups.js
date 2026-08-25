@@ -1,11 +1,32 @@
-const { getGroups, createGroup, joinGroup } = require('../../api/group')
-const { formatMoney } = require('../../utils/format')
+const {
+  getGroups,
+  createGroup,
+  applyGroup,
+  selectGroup
+} = require('../../api/group')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
+const {
+  findMyMember,
+  roleTypeLabel,
+  GROUP_STATUS
+} = require('../../utils/group-map')
+
+function currentUserId() {
+  const user = (getApp().globalData && getApp().globalData.userInfo) || {}
+  return user.id || user.userId || ''
+}
 
 Page({
   data: {
     groups: [],
-    guestMode: false
+    guestMode: false,
+    currentGroupId: null,
+    panel: '', // '' | create | apply
+    createName: '',
+    createMemberName: '',
+    inviteCode: '',
+    applyMsg: '',
+    submitting: false
   },
 
   onShow() {
@@ -16,22 +37,36 @@ Page({
   },
 
   async loadGroups() {
-    // 未登录：不请求，不引导登录
     if (!isLoggedIn()) {
-      this.setData({ groups: [], guestMode: true })
+      this.setData({ groups: [], guestMode: true, currentGroupId: null })
       return
     }
 
     wx.showNavigationBarLoading()
     try {
-      const { list } = await getGroups()
+      const [{ list }, current] = await Promise.all([
+        getGroups(),
+        selectGroup().catch(() => null)
+      ])
+      const uid = currentUserId()
+      const currentGroupId = current && current.groupId != null ? current.groupId : null
+      if (currentGroupId != null) {
+        getApp().globalData.currentGroupId = currentGroupId
+      }
+
       this.setData({
         guestMode: false,
-        groups: (list || []).map((g) => ({
-          ...g,
-          monthExpenseText: formatMoney(g.monthExpense),
-          balanceText: formatMoney(g.myBalance, { withSign: true })
-        }))
+        currentGroupId,
+        groups: (list || [])
+          .filter((g) => Number(g.status) !== GROUP_STATUS.DISSOLVED)
+          .map((g) => {
+            const mine = findMyMember(g, uid)
+            return {
+              ...g,
+              roleLabel: mine ? roleTypeLabel(mine.roleType) : '',
+              isCurrent: currentGroupId != null && String(g.groupId) === String(currentGroupId)
+            }
+          })
       })
     } catch (err) {
       if (err && err.code === 401) {
@@ -44,60 +79,100 @@ Page({
     }
   },
 
-  onCreate() {
-    // 主动写操作：未登录才引导登录
+  openCreate() {
     if (!requireLogin('新建群组前请先登录')) return
-
-    wx.showModal({
-      title: '新建群组',
-      editable: true,
-      placeholderText: '例如：合租小家',
-      success: async (res) => {
-        if (!res.confirm) return
-        const name = (res.content || '').trim()
-        if (!name) {
-          wx.showToast({ title: '请输入名称', icon: 'none' })
-          return
-        }
-        try {
-          await createGroup({ name })
-          wx.showToast({ title: '已创建', icon: 'success' })
-          this.loadGroups()
-        } catch (err) {
-          wx.showToast({ title: err.message || '创建失败', icon: 'none' })
-        }
-      }
+    this.setData({
+      panel: 'create',
+      createName: '',
+      createMemberName: ''
     })
   },
 
-  onJoin() {
-    if (!requireLogin('加入群组前请先登录')) return
-
-    wx.showModal({
-      title: '加入群组',
-      editable: true,
-      placeholderText: '输入邀请码',
-      success: async (res) => {
-        if (!res.confirm) return
-        const inviteCode = (res.content || '').trim()
-        if (!inviteCode) {
-          wx.showToast({ title: '请输入邀请码', icon: 'none' })
-          return
-        }
-        try {
-          await joinGroup(inviteCode)
-          wx.showToast({ title: '已申请加入', icon: 'success' })
-          this.loadGroups()
-        } catch (err) {
-          wx.showToast({ title: err.message || '加入失败', icon: 'none' })
-        }
-      }
+  openApply() {
+    if (!requireLogin('申请加入前请先登录')) return
+    this.setData({
+      panel: 'apply',
+      inviteCode: '',
+      applyMsg: ''
     })
+  },
+
+  closePanel() {
+    this.setData({ panel: '' })
+  },
+
+  onCreateNameInput(e) {
+    this.setData({ createName: e.detail.value })
+  },
+
+  onCreateMemberInput(e) {
+    this.setData({ createMemberName: e.detail.value })
+  },
+
+  onInviteInput(e) {
+    this.setData({ inviteCode: e.detail.value })
+  },
+
+  onApplyMsgInput(e) {
+    this.setData({ applyMsg: e.detail.value })
+  },
+
+  async submitCreate() {
+    if (this.data.submitting) return
+    const groupName = (this.data.createName || '').trim()
+    if (!groupName) {
+      wx.showToast({ title: '请输入群组名称', icon: 'none' })
+      return
+    }
+    this.setData({ submitting: true })
+    try {
+      await createGroup({
+        groupName,
+        memberName: (this.data.createMemberName || '').trim()
+      })
+      wx.showToast({ title: '已创建', icon: 'success' })
+      this.setData({ panel: '' })
+      this.loadGroups()
+    } catch (err) {
+      wx.showToast({ title: err.message || '创建失败', icon: 'none' })
+    } finally {
+      this.setData({ submitting: false })
+    }
+  },
+
+  async submitApply() {
+    if (this.data.submitting) return
+    const inviteCode = (this.data.inviteCode || '').trim()
+    if (!inviteCode) {
+      wx.showToast({ title: '请输入邀请码', icon: 'none' })
+      return
+    }
+    this.setData({ submitting: true })
+    try {
+      await applyGroup({
+        inviteCode,
+        applyMsg: (this.data.applyMsg || '').trim()
+      })
+      wx.showToast({ title: '已提交申请', icon: 'success' })
+      this.setData({ panel: '' })
+    } catch (err) {
+      wx.showToast({ title: err.message || '申请失败', icon: 'none' })
+    } finally {
+      this.setData({ submitting: false })
+    }
   },
 
   goDetail(e) {
+    const groupId = e.currentTarget.dataset.id
+    if (groupId == null) return
+    getApp().globalData.currentGroupId = groupId
     wx.navigateTo({
-      url: `/pages/group-detail/group-detail?id=${e.currentTarget.dataset.id}`
+      url: `/pages/group-detail/group-detail?groupId=${groupId}`
     })
+  },
+
+  goApplyList() {
+    if (!requireLogin('查看申请前请先登录')) return
+    wx.navigateTo({ url: '/pages/group-apply/group-apply' })
   }
 })

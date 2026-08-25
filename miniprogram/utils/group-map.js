@@ -1,0 +1,151 @@
+/**
+ * 群组字段约定（与后端对齐）
+ * roleType: 1=群主，2=管理员，3=成员
+ * group/member status: 1=正常，0=解散或退出
+ * apply status: 0=待审核，1=已通过，2=已拒绝（若后端不同可只改此处）
+ */
+
+const ROLE_TYPE = {
+  OWNER: 1,
+  ADMIN: 2,
+  MEMBER: 3
+}
+
+const GROUP_STATUS = {
+  DISSOLVED: 0,
+  NORMAL: 1
+}
+
+const MEMBER_STATUS = {
+  EXITED: 0,
+  NORMAL: 1
+}
+
+const APPLY_STATUS = {
+  PENDING: 0,
+  APPROVED: 1,
+  REJECTED: 2
+}
+
+const APPLY_STATUS_OPTIONS = [
+  { id: null, name: '全部' },
+  { id: 0, name: '待审核' },
+  { id: 1, name: '已通过' },
+  { id: 2, name: '已拒绝' }
+]
+
+function roleTypeLabel(roleType) {
+  const n = Number(roleType)
+  if (n === ROLE_TYPE.OWNER) return '群主'
+  if (n === ROLE_TYPE.ADMIN) return '管理员'
+  return '成员'
+}
+
+function applyStatusLabel(status) {
+  const n = Number(status)
+  if (n === APPLY_STATUS.PENDING) return '待审核'
+  if (n === APPLY_STATUS.APPROVED) return '已通过'
+  if (n === APPLY_STATUS.REJECTED) return '已拒绝'
+  return '未知'
+}
+
+function isOwner(roleType) {
+  return Number(roleType) === ROLE_TYPE.OWNER
+}
+
+function isAdmin(roleType) {
+  return Number(roleType) === ROLE_TYPE.ADMIN
+}
+
+/** 群主或管理员可审核申请 */
+function canReview(roleType) {
+  const n = Number(roleType)
+  return n === ROLE_TYPE.OWNER || n === ROLE_TYPE.ADMIN
+}
+
+function normalizeGroup(dto) {
+  if (!dto || typeof dto !== 'object') return null
+  const groupId = dto.groupId != null ? dto.groupId : dto.id
+  const groupName = dto.groupName || dto.name || ''
+  const members = Array.isArray(dto.groupMembers)
+    ? dto.groupMembers.map(normalizeMember).filter(Boolean)
+    : []
+  const activeMembers = members.filter((m) => Number(m.status) === MEMBER_STATUS.NORMAL)
+  return {
+    ...dto,
+    groupId,
+    groupName,
+    id: groupId,
+    name: groupName,
+    ownerUserId: dto.ownerUserId,
+    inviteCode: dto.inviteCode || '',
+    status: dto.status != null ? Number(dto.status) : GROUP_STATUS.NORMAL,
+    groupMembers: members,
+    memberCount: activeMembers.length || members.length || dto.memberCount || 0
+  }
+}
+
+function normalizeMember(m) {
+  if (!m || typeof m !== 'object') return null
+  const memberName = m.memberName || m.nickname || m.name || ''
+  return {
+    ...m,
+    groupMemberId: m.groupMemberId,
+    groupId: m.groupId,
+    userId: m.userId,
+    roleType: m.roleType != null ? Number(m.roleType) : ROLE_TYPE.MEMBER,
+    memberName,
+    sortNo: m.sortNo,
+    status: m.status != null ? Number(m.status) : MEMBER_STATUS.NORMAL,
+    roleLabel: roleTypeLabel(m.roleType),
+    avatarText: (memberName || '?').slice(0, 1)
+  }
+}
+
+function normalizeApply(a) {
+  if (!a || typeof a !== 'object') return null
+  return {
+    ...a,
+    id: a.id,
+    groupId: a.groupId,
+    userId: a.userId,
+    nickname: a.nickname || '',
+    applyMessage: a.applyMessage || a.applyMsg || '',
+    status: a.status != null ? Number(a.status) : APPLY_STATUS.PENDING,
+    statusLabel: applyStatusLabel(a.status),
+    reviewUserId: a.reviewUserId,
+    reviewTime: a.reviewTime,
+    reviewRemark: a.reviewRemark || '',
+    createTime: a.createTime
+  }
+}
+
+/** 在成员列表中找到当前用户 */
+function findMyMember(group, userId) {
+  if (!group || userId == null || userId === '') return null
+  const members = group.groupMembers || []
+  return (
+    members.find(
+      (m) =>
+        String(m.userId) === String(userId) &&
+        Number(m.status) === MEMBER_STATUS.NORMAL
+    ) || null
+  )
+}
+
+module.exports = {
+  ROLE_TYPE,
+  GROUP_STATUS,
+  MEMBER_STATUS,
+  APPLY_STATUS,
+  APPLY_STATUS_OPTIONS,
+  roleTypeLabel,
+  applyStatusLabel,
+  isOwner,
+  isAdmin,
+  canReview,
+  normalizeGroup,
+  normalizeMember,
+  normalizeApply,
+  findMyMember
+}

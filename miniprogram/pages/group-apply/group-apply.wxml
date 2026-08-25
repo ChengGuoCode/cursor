@@ -1,0 +1,37 @@
+<view class="page apply-page">
+  <view class="chip-row filter">
+    <view
+      class="chip {{statusKey === item.key ? 'active' : ''}}"
+      wx:for="{{statusOptions}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onStatusChange"
+    >{{item.name}}</view>
+  </view>
+
+  <block wx:if="{{list.length}}">
+    <view class="soft-panel apply-card" wx:for="{{list}}" wx:key="id">
+      <view class="apply-top">
+        <text class="apply-name">{{item.nickname || '用户'}}</text>
+        <text class="apply-status status-{{item.status}}">{{item.statusLabel}}</text>
+      </view>
+      <view class="apply-msg" wx:if="{{item.applyMessage}}">{{item.applyMessage}}</view>
+      <view class="apply-time" wx:if="{{item.timeText}}">{{item.timeText}}</view>
+      <view class="apply-actions" wx:if="{{item.status === 0}}">
+        <block wx:if="{{canReview && !item.isMine}}">
+          <view class="btn-ghost mini" data-id="{{item.id}}" bindtap="onReject">拒绝</view>
+          <view class="btn-primary mini" data-id="{{item.id}}" bindtap="onApprove">通过</view>
+        </block>
+        <view
+          wx:elif="{{item.isMine}}"
+          class="btn-ghost mini"
+          data-id="{{item.id}}"
+          bindtap="onCancel"
+        >取消申请</view>
+      </view>
+    </view>
+  </block>
+
+  <view wx:elif="{{guestMode}}" class="empty-wrap soft-panel">登录后可查看申请</view>
+  <view wx:else class="empty-wrap soft-panel">暂无申请记录</view>
+</view>
