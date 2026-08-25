@@ -2,7 +2,7 @@
   <view class="head">
     <view>
       <view class="page-title">群组</view>
-      <view class="page-subtitle">合租、出游、聚餐一起记账</view>
+      <view class="page-subtitle">家庭、合租、出游、聚餐一起记账</view>
     </view>
     <view class="head-actions">
       <view class="btn-ghost mini" bindtap="openApply">申请加入</view>
