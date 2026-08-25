@@ -47,8 +47,8 @@ function mockBillToRes(b) {
 function getOverview(params = {}) {
   const query = {
     month: params.month,
-    statUnit: params.statUnit,
-    timeUnit: params.timeUnit
+    scopeType: params.scopeType,
+    periodType: params.periodType
   }
   if (params.scope === 'group' && params.groupId != null && params.groupId !== '') {
     query.groupId = params.groupId
@@ -77,7 +77,7 @@ function getBills(params = {}) {
     billType,
     categoryCode: params.categoryCode,
     accountId: params.accountId,
-    scope: params.scope || 'personal',
+    scopeType: params.scope || 1,
     groupId: params.groupId
   })
 
@@ -116,7 +116,7 @@ function getBills(params = {}) {
   }
 
   return request({
-    url: '/api/bills/page',
+    url: '/api/bill/page',
     method: 'POST',
     data: pageReq
   }).then((page) => {
