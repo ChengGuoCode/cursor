@@ -40,6 +40,11 @@
   color: var(--color-text-muted);
 }
 
+.apply-status.status-3 {
+  color: var(--color-text-muted);
+  background: rgba(138, 154, 146, 0.15);
+}
+
 .apply-msg {
   margin-top: 12rpx;
   font-size: 26rpx;

@@ -82,7 +82,7 @@
 - `POST /update`：群主更新（改名、解散 `status=0`、转让 `ownerUserId`、刷新邀请码、成员升降/移除）
 - `GET /list`：我加入的群组
 - `GET /select`：当前群组（含 `groupMembers`）
-- `GET /listApply`：入群申请（可选 `applyStatus`：0待审 / 1通过 / 2拒绝）
+- `GET /listApply`：入群申请（可选 `applyStatus`：0待审核 / 1通过 / 2拒绝 / 3取消）
 - `POST /apply`：邀请码申请；`POST /cancelApply`：取消；`POST /review`：审核
 - `POST /updateMemberName`：改群昵称；`POST /exit`：退出
 - `roleType`：`1群主 / 2管理员 / 3成员`；成员与群组 `status`：`1正常 / 0退出或解散`

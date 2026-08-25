@@ -2,7 +2,7 @@
  * 群组字段约定（与后端对齐）
  * roleType: 1=群主，2=管理员，3=成员
  * group/member status: 1=正常，0=解散或退出
- * apply status: 0=待审核，1=已通过，2=已拒绝（若后端不同可只改此处）
+ * apply status: PENDING_APPROVAL(0) / APPROVED(1) / REJECTED(2) / CANCELED(3)
  */
 
 const ROLE_TYPE = {
@@ -21,17 +21,22 @@ const MEMBER_STATUS = {
   NORMAL: 1
 }
 
+/** 与后端枚举一致 */
 const APPLY_STATUS = {
-  PENDING: 0,
+  PENDING_APPROVAL: 0,
   APPROVED: 1,
-  REJECTED: 2
+  REJECTED: 2,
+  CANCELED: 3,
+  /** 别名，兼容旧引用 */
+  PENDING: 0
 }
 
 const APPLY_STATUS_OPTIONS = [
   { id: null, name: '全部' },
   { id: 0, name: '待审核' },
-  { id: 1, name: '已通过' },
-  { id: 2, name: '已拒绝' }
+  { id: 1, name: '通过' },
+  { id: 2, name: '拒绝' },
+  { id: 3, name: '取消' }
 ]
 
 function roleTypeLabel(roleType) {
@@ -43,9 +48,10 @@ function roleTypeLabel(roleType) {
 
 function applyStatusLabel(status) {
   const n = Number(status)
-  if (n === APPLY_STATUS.PENDING) return '待审核'
-  if (n === APPLY_STATUS.APPROVED) return '已通过'
-  if (n === APPLY_STATUS.REJECTED) return '已拒绝'
+  if (n === APPLY_STATUS.PENDING_APPROVAL) return '待审核'
+  if (n === APPLY_STATUS.APPROVED) return '通过'
+  if (n === APPLY_STATUS.REJECTED) return '拒绝'
+  if (n === APPLY_STATUS.CANCELED) return '取消'
   return '未知'
 }
 
