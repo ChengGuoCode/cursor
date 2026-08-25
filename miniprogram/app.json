@@ -7,7 +7,9 @@
     "pages/profile/profile",
     "pages/bill-detail/bill-detail",
     "pages/group-detail/group-detail",
-    "pages/group-apply/group-apply"
+    "pages/group-apply/group-apply",
+    "pages/group-create/group-create",
+    "pages/group-join/group-join"
   ],
   "window": {
     "navigationBarBackgroundColor": "#0B3D2E",

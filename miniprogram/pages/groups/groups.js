@@ -1,9 +1,4 @@
-const {
-  getGroups,
-  createGroup,
-  applyGroup,
-  selectGroup
-} = require('../../api/group')
+const { getGroups, selectGroup } = require('../../api/group')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
 const { toastError } = require('../../utils/request')
 const {
@@ -21,13 +16,7 @@ Page({
   data: {
     groups: [],
     guestMode: false,
-    currentGroupId: null,
-    panel: '', // '' | create | apply
-    createName: '',
-    createMemberName: '',
-    inviteCode: '',
-    applyMsg: '',
-    submitting: false
+    currentGroupId: null
   },
 
   onShow() {
@@ -82,85 +71,12 @@ Page({
 
   openCreate() {
     if (!requireLogin('新建群组前请先登录')) return
-    this.setData({
-      panel: 'create',
-      createName: '',
-      createMemberName: ''
-    })
+    wx.navigateTo({ url: '/pages/group-create/group-create' })
   },
 
   openApply() {
     if (!requireLogin('申请加入前请先登录')) return
-    this.setData({
-      panel: 'apply',
-      inviteCode: '',
-      applyMsg: ''
-    })
-  },
-
-  closePanel() {
-    this.setData({ panel: '' })
-  },
-
-  onCreateNameInput(e) {
-    this.setData({ createName: e.detail.value })
-  },
-
-  onCreateMemberInput(e) {
-    this.setData({ createMemberName: e.detail.value })
-  },
-
-  onInviteInput(e) {
-    this.setData({ inviteCode: e.detail.value })
-  },
-
-  onApplyMsgInput(e) {
-    this.setData({ applyMsg: e.detail.value })
-  },
-
-  async submitCreate() {
-    if (this.data.submitting) return
-    const groupName = (this.data.createName || '').trim()
-    if (!groupName) {
-      wx.showToast({ title: '请输入群组名称', icon: 'none' })
-      return
-    }
-    this.setData({ submitting: true })
-    try {
-      await createGroup({
-        groupName,
-        memberName: (this.data.createMemberName || '').trim()
-      })
-      wx.showToast({ title: '已创建', icon: 'success' })
-      this.setData({ panel: '' })
-      this.loadGroups()
-    } catch (err) {
-      toastError(err, '创建失败')
-    } finally {
-      this.setData({ submitting: false })
-    }
-  },
-
-  async submitApply() {
-    if (this.data.submitting) return
-    const inviteCode = (this.data.inviteCode || '').trim()
-    if (!inviteCode) {
-      wx.showToast({ title: '请输入邀请码', icon: 'none' })
-      return
-    }
-    this.setData({ submitting: true })
-    try {
-      await applyGroup({
-        inviteCode,
-        applyMsg: (this.data.applyMsg || '').trim()
-      })
-      wx.showToast({ title: '已提交申请', icon: 'success' })
-      this.setData({ panel: '' })
-    } catch (err) {
-      toastError(err, '申请失败')
-    } finally {
-      this.setData({ submitting: false })
-    }
+    wx.navigateTo({ url: '/pages/group-join/group-join' })
   },
 
   goDetail(e) {
