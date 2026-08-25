@@ -2,8 +2,13 @@ const { getBills } = require('../../api/bill')
 const { getGroups } = require('../../api/group')
 const { formatMoney, formatMonthLabel, groupBillsByDate } = require('../../utils/format')
 const { isLoggedIn } = require('../../utils/auth')
-const { loadConfig, findCategory } = require('../../utils/config-store')
-const { uiTypeToBillType } = require('../../utils/bill-map')
+const { loadConfig, findCategory, getCachedCategories } = require('../../utils/config-store')
+const {
+  BILL_TYPE,
+  BILL_TYPE_OPTIONS,
+  normalizeBillType,
+  isIncome
+} = require('../../utils/bill-map')
 
 function syncScopeFromApp(page) {
   const app = getApp()
@@ -19,12 +24,13 @@ Page({
   data: {
     month: '',
     monthLabel: '',
-    type: 'all',
-    typeOptions: [
-      { id: 'all', name: '全部' },
-      { id: 'expense', name: '支出' },
-      { id: 'income', name: '收入' }
-    ],
+    /** 筛选 billType：null=全部，1=收入，2=支出 */
+    billType: null,
+    typeOptions: BILL_TYPE_OPTIONS.map((o) => ({
+      ...o,
+      key: o.id == null ? 'all' : String(o.id)
+    })),
+    billTypeKey: 'all',
     dayGroups: [],
     totalExpenseText: '0.00',
     totalIncomeText: '0.00',
@@ -37,7 +43,6 @@ Page({
     groupIndex: 0,
     hasGroups: false,
     swapDisabled: true,
-    // 筛选
     filterExpanded: false,
     accounts: [],
     accountNames: ['全部账户'],
@@ -103,10 +108,12 @@ Page({
   },
 
   applyCategoryOptions() {
-    const { getCachedCategories } = require('../../utils/config-store')
     let list = getCachedCategories()
-    if (this.data.type === 'income') list = list.filter((c) => c.type === 1)
-    if (this.data.type === 'expense') list = list.filter((c) => c.type === 2)
+    if (this.data.billType === BILL_TYPE.INCOME) {
+      list = list.filter((c) => c.type === BILL_TYPE.INCOME)
+    } else if (this.data.billType === BILL_TYPE.EXPENSE) {
+      list = list.filter((c) => c.type === BILL_TYPE.EXPENSE)
+    }
     const categoryOptions = [{ code: '', name: '全部类目' }, ...list]
     this.setData({
       categoryOptions,
@@ -125,7 +132,6 @@ Page({
         hasGroups,
         swapDisabled: !hasGroups
       })
-      // 没有群组时强制回个人
       if (!hasGroups && this.data.scope === 'group') {
         getApp().globalData.billScope = 'personal'
         this.setData({ scope: 'personal', scopeLabel: '个人', currentGroupId: null })
@@ -176,8 +182,7 @@ Page({
     try {
       const res = await getBills({
         month: this.data.month,
-        type: this.data.type,
-        billType: this.data.type === 'all' ? undefined : uiTypeToBillType(this.data.type),
+        billType: this.data.billType, // null | 1 | 2
         categoryCode: this.data.categoryCode || undefined,
         accountId: this.data.accountId,
         scope: this.data.scope,
@@ -193,14 +198,17 @@ Page({
           icon: cat.icon,
           color: cat.color,
           categoryName: cat.name,
-          amountText: formatMoney(bill.amount, { withSign: true, type: bill.type })
+          amountText: formatMoney(bill.amount, {
+            withSign: true,
+            billType: bill.billType
+          })
         }
       })
 
       let totalExpense = 0
       let totalIncome = 0
       list.forEach((b) => {
-        if (b.type === 'income') totalIncome += Number(b.amount || 0)
+        if (isIncome(b.billType)) totalIncome += Number(b.amount || 0)
         else totalExpense += Number(b.amount || 0)
       })
 
@@ -269,9 +277,12 @@ Page({
   },
 
   onTypeChange(e) {
-    const type = e.currentTarget.dataset.id
+    const key = e.currentTarget.dataset.key
+    const opt = this.data.typeOptions.find((o) => o.key === key)
+    const billType = opt ? normalizeBillType(opt.id) : null
     this.setData({
-      type,
+      billType,
+      billTypeKey: key || 'all',
       categoryCode: '',
       categoryIndex: 0,
       pageNum: 1

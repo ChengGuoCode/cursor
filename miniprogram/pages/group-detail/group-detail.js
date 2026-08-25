@@ -31,12 +31,22 @@ Page({
           balanceText: formatMoney(group.myBalance, { withSign: true })
         },
         recentBills: (group.recentBills || []).map((bill) => {
-          const cat = getCategoryById(bill.categoryId)
+          const cat = getCategoryById(bill.categoryCode || bill.categoryId)
+          const billType =
+            bill.billType != null
+              ? bill.billType
+              : bill.type === 'income'
+                ? 1
+                : 2
           return {
             ...bill,
+            billType,
             categoryName: cat.name,
-            timeText: formatDate(bill.occurredAt, 'MM-DD HH:mm'),
-            amountText: formatMoney(bill.amount, { withSign: true, type: bill.type })
+            timeText: formatDate(bill.billDate || bill.occurredAt, 'MM-DD HH:mm'),
+            amountText: formatMoney(bill.amount, {
+              withSign: true,
+              billType
+            })
           }
         })
       })

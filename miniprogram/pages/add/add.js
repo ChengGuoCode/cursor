@@ -4,14 +4,15 @@ const { formatDate } = require('../../utils/format')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
 const {
   loadConfig,
-  categoriesByUiType,
+  categoriesByBillType,
   getCachedAccounts
 } = require('../../utils/config-store')
-const { uiTypeToBillType } = require('../../utils/bill-map')
+const { BILL_TYPE, normalizeBillType } = require('../../utils/bill-map')
 
 Page({
   data: {
-    type: 'expense',
+    /** 创建时 billType：1=收入，2=支出 */
+    billType: BILL_TYPE.EXPENSE,
     amount: '',
     amountFocus: false,
     categories: [],
@@ -48,7 +49,7 @@ Page({
   },
 
   refreshCategories() {
-    const categories = categoriesByUiType(this.data.type)
+    const categories = categoriesByBillType(this.data.billType)
     const matched = categories.find((c) => c.code === this.data.categoryCode)
     const categoryCode =
       (matched && matched.code) || (categories[0] && categories[0].code) || ''
@@ -59,7 +60,6 @@ Page({
     const accounts = getCachedAccounts()
     let accountIndex = this.data.accountIndex
     if (accountIndex >= accounts.length) accountIndex = 0
-    // 默认微信（若存在）
     const wechatIdx = accounts.findIndex((a) => a.accountName === '微信')
     if (!this.data.accounts.length && wechatIdx >= 0) accountIndex = wechatIdx
     this.setData({
@@ -90,8 +90,8 @@ Page({
   },
 
   onTypeChange(e) {
-    const type = e.currentTarget.dataset.type
-    this.setData({ type })
+    const billType = normalizeBillType(e.currentTarget.dataset.billType)
+    this.setData({ billType: billType == null ? BILL_TYPE.EXPENSE : billType })
     this.refreshCategories()
   },
 
@@ -166,7 +166,7 @@ Page({
     this.setData({ submitting: true })
     try {
       await createBill({
-        billType: uiTypeToBillType(this.data.type),
+        billType: this.data.billType,
         amount,
         categoryCode: this.data.categoryCode,
         accountId: account.accountId,
@@ -175,7 +175,7 @@ Page({
         billDate: this.data.date
       })
       wx.showToast({ title: '已保存', icon: 'success' })
-      const categories = categoriesByUiType(this.data.type)
+      const categories = categoriesByBillType(this.data.billType)
       this.setData({
         amount: '',
         remark: '',

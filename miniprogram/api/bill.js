@@ -3,7 +3,7 @@ const { mockBills, mockOverview } = require('../utils/mock')
 const {
   buildBillPageReq,
   mapBillRes,
-  uiTypeToBillType,
+  normalizeBillType,
   BILL_TYPE
 } = require('../utils/bill-map')
 
@@ -16,11 +16,17 @@ const ACCOUNT_CODE_TO_ID = {
 }
 
 function mockBillToRes(b) {
+  const billType =
+    b.billType != null
+      ? normalizeBillType(b.billType)
+      : b.type === 'income'
+        ? BILL_TYPE.INCOME
+        : BILL_TYPE.EXPENSE
   return mapBillRes({
     id: b.id,
     groupId: b.groupId,
     userId: b.createdBy,
-    billType: b.type === 'income' ? BILL_TYPE.INCOME : BILL_TYPE.EXPENSE,
+    billType,
     categoryCode: b.categoryCode || b.categoryId,
     accountId:
       b.accountId != null && typeof b.accountId === 'number'
@@ -41,8 +47,8 @@ function mockBillToRes(b) {
 function getOverview(params = {}) {
   const query = {
     month: params.month,
-    scopeType: params.scopeType,
-    periodType: params.periodType
+    statUnit: params.statUnit,
+    timeUnit: params.timeUnit
   }
   if (params.scope === 'group' && params.groupId != null && params.groupId !== '') {
     query.groupId = params.groupId
@@ -57,13 +63,12 @@ function getOverview(params = {}) {
 
 /**
  * 账单分页 — POST /api/bills/page
- * PageReqDTO<BillReqDTO> → PageResDTO<BillResDTO>
+ * billType: 1收入 / 2支出 / null全部
  */
 function getBills(params = {}) {
-  const billType =
-    params.billType != null
-      ? params.billType
-      : uiTypeToBillType(params.type === 'all' ? undefined : params.type)
+  const billType = normalizeBillType(
+    params.billType !== undefined ? params.billType : null
+  )
 
   const pageReq = buildBillPageReq({
     pageNum: params.pageNum || params.page || 1,
@@ -135,19 +140,23 @@ function getBillDetail(id) {
 
 /**
  * 创建账单 — POST /api/bills
- * 建议 body：billType, categoryCode, accountId, amount, remark, billDate, groupId?
+ * body：billType(1/2), categoryCode, accountId, amount, remark, billDate, groupId?
  */
 function createBill(payload) {
+  const body = {
+    ...payload,
+    billType: normalizeBillType(payload.billType)
+  }
   if (shouldUseMock()) {
     const created = {
       id: `b_${Date.now()}`,
-      type: payload.billType === BILL_TYPE.INCOME ? 'income' : 'expense',
-      categoryId: payload.categoryCode,
-      accountId: payload.accountId,
-      amount: payload.amount,
-      remark: payload.remark,
-      groupId: payload.groupId == null ? null : payload.groupId,
-      occurredAt: payload.billDate || payload.occurredAt || new Date().toISOString(),
+      billType: body.billType,
+      categoryId: body.categoryCode,
+      accountId: body.accountId,
+      amount: body.amount,
+      remark: body.remark,
+      groupId: body.groupId == null ? null : body.groupId,
+      occurredAt: body.billDate || body.occurredAt || new Date().toISOString(),
       createdBy: 'u_1001'
     }
     mockBills.unshift(created)
@@ -156,7 +165,7 @@ function createBill(payload) {
   return request({
     url: '/api/bills',
     method: 'POST',
-    data: payload,
+    data: body,
     forceLoginOnUnauthorized: true
   })
 }

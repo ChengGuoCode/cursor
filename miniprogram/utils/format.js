@@ -9,13 +9,20 @@ function toDate(input) {
   return new Date(String(input).replace(/-/g, '/'))
 }
 
-/** 金额展示：分转元或直接元，统一两位小数 */
-function formatMoney(value, { withSign = false, type } = {}) {
+/**
+ * 金额展示
+ * @param {number|string} value
+ * @param {{ withSign?: boolean, billType?: number|null }} options
+ * billType: 1=收入(+)，2=支出(-)
+ */
+function formatMoney(value, { withSign = false, billType } = {}) {
   const num = Number(value || 0)
   const abs = Math.abs(num).toFixed(2)
   if (!withSign) return abs
-  if (type === 'income' || num > 0) return `+${abs}`
-  if (type === 'expense' || num < 0) return `-${abs}`
+  if (Number(billType) === 1) return `+${abs}`
+  if (Number(billType) === 2) return `-${abs}`
+  if (num > 0) return `+${abs}`
+  if (num < 0) return `-${abs}`
   return abs
 }
 
@@ -41,11 +48,11 @@ function weekdayLabel(input) {
   return `周${labels[toDate(input).getDay()]}`
 }
 
-/** 将账单列表按日期分组 */
+/** 将账单列表按日期分组（billType: 1收入 2支出） */
 function groupBillsByDate(bills = []) {
   const map = {}
   bills.forEach((bill) => {
-    const key = formatDate(bill.occurredAt || bill.date)
+    const key = formatDate(bill.billDate || bill.occurredAt || bill.date)
     if (!map[key]) {
       map[key] = {
         date: key,
@@ -56,8 +63,9 @@ function groupBillsByDate(bills = []) {
       }
     }
     map[key].items.push(bill)
-    if (bill.type === 'income') map[key].income += Number(bill.amount || 0)
-    else map[key].expense += Number(bill.amount || 0)
+    const amount = Number(bill.amount || 0)
+    if (Number(bill.billType) === 1) map[key].income += amount
+    else map[key].expense += amount
   })
   return Object.keys(map)
     .sort((a, b) => (a < b ? 1 : -1))

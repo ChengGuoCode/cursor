@@ -2,10 +2,10 @@
   <view class="soft-panel hero">
     <view class="icon" style="background: {{bill.color}}22;">{{bill.icon}}</view>
     <view class="cat">{{bill.categoryName}}</view>
-    <view class="amount amount-lg {{bill.type === 'income' ? 'amount-income' : 'amount-expense'}}">
+    <view class="amount amount-lg {{bill.billType === 1 ? 'amount-income' : 'amount-expense'}}">
       {{bill.amountText}}
     </view>
-    <view class="type-tag">{{bill.type === 'income' ? '收入' : '支出'}}</view>
+    <view class="type-tag">{{bill.billType === 1 ? '收入' : '支出'}}</view>
   </view>
 
   <view class="soft-panel info-panel">

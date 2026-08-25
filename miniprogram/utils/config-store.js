@@ -88,13 +88,9 @@ function getCachedAccounts() {
 
 function categoriesByBillType(billType) {
   const list = getCachedCategories()
+  if (billType == null || billType === '') return list
   const type = Number(billType)
   return list.filter((c) => c.type === type)
-}
-
-function categoriesByUiType(uiType) {
-  const billType = uiType === 'income' ? BILL_TYPE.INCOME : BILL_TYPE.EXPENSE
-  return categoriesByBillType(billType)
 }
 
 function findCategory(code) {
@@ -123,7 +119,6 @@ module.exports = {
   getCachedCategories,
   getCachedAccounts,
   categoriesByBillType,
-  categoriesByUiType,
   findCategory,
   findAccount,
   clearConfigCache,

@@ -28,10 +28,10 @@
       </picker>
       <view class="chip-row">
         <view
-          class="chip {{type === item.id ? 'active' : ''}}"
+          class="chip {{billTypeKey === item.key ? 'active' : ''}}"
           wx:for="{{typeOptions}}"
-          wx:key="id"
-          data-id="{{item.id}}"
+          wx:key="key"
+          data-key="{{item.key}}"
           bindtap="onTypeChange"
         >{{item.name}}</view>
       </view>
@@ -95,7 +95,7 @@
             <view class="bill-title">{{bill.categoryName}}</view>
             <view class="bill-sub">{{bill.remark || bill.accountName || '无备注'}}</view>
           </view>
-          <view class="amount amount-sm {{bill.type === 'income' ? 'amount-income' : 'amount-expense'}}">
+          <view class="amount amount-sm {{bill.billType === 1 ? 'amount-income' : 'amount-expense'}}">
             {{bill.amountText}}
           </view>
         </view>

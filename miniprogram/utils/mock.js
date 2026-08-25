@@ -129,8 +129,10 @@ function buildLast7DaysTrend(bills = []) {
   const weekdays = ['日', '一', '二', '三', '四', '五', '六']
   const expenseByDate = {}
   bills.forEach((bill) => {
-    if (bill.type !== 'expense') return
-    const key = formatDate(bill.occurredAt || bill.date, 'YYYY-MM-DD')
+    const isExpense =
+      bill.billType === 2 || bill.type === 'expense' || (!bill.billType && bill.type !== 'income')
+    if (!isExpense) return
+    const key = formatDate(bill.occurredAt || bill.billDate || bill.date, 'YYYY-MM-DD')
     expenseByDate[key] = (expenseByDate[key] || 0) + Number(bill.amount || 0)
   })
 

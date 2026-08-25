@@ -32,7 +32,10 @@ Page({
           color: cat.color,
           categoryName: cat.name,
           timeText: formatDate(bill.billDate || bill.occurredAt, 'YYYY-MM-DD'),
-          amountText: formatMoney(bill.amount, { withSign: true, type: bill.type })
+          amountText: formatMoney(bill.amount, {
+            withSign: true,
+            billType: bill.billType
+          })
         }
       })
     } catch (err) {
