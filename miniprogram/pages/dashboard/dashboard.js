@@ -48,8 +48,8 @@ Page({
     categoryStats: [],
     recentBills: [],
     guestMode: false,
-    statUnit: 1,
-    timeUnit: 1,
+    scopeType: 1,
+    periodType: 1,
     scope: 'personal',
     scopeLabel: '个人',
     currentGroupId: null,
@@ -98,7 +98,7 @@ Page({
       const hasGroups = groupList.length > 0
       this.setData({
         groupList,
-        groupNames: groupList.map((g) => g.name),
+        groupNames: groupList.map((g) => g.groupName),
         hasGroups,
         swapDisabled: !hasGroups
       })
@@ -118,10 +118,10 @@ Page({
       return
     }
     let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
-    let groupIndex = groupList.findIndex((g) => String(g.id) === String(currentGroupId))
+    let groupIndex = groupList.findIndex((g) => String(g.groupId) === String(currentGroupId))
     if (groupIndex < 0) {
       groupIndex = 0
-      currentGroupId = groupList[0].id
+      currentGroupId = groupList[0].groupId
     }
     getApp().globalData.currentGroupId = currentGroupId
     this.setData({ groupIndex, currentGroupId })
@@ -148,8 +148,8 @@ Page({
     try {
       const data = await getOverview({
         month: this.data.month,
-        statUnit: this.data.statUnit,
-        timeUnit: this.data.timeUnit,
+        scopeType: this.data.scopeType,
+        periodType: this.data.periodType,
         scope: this.data.scope,
         groupId: this.data.scope === 'group' ? this.data.currentGroupId : null
       })

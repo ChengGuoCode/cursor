@@ -22,7 +22,7 @@ function getGroups() {
   if (shouldUseMock()) {
     return Promise.resolve({ list: mockGroups.map((g) => ({ ...g })) })
   }
-  return request({ url: '/api/groups', method: 'GET' })
+  return request({ url: '/api/group/list', method: 'GET' })
     .then((data) => ({ list: normalizeGroupList(data) }))
     .catch((err) => {
       // 列表拉取失败时降级为空，避免概览/账单整页报错

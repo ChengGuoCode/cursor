@@ -41,8 +41,8 @@ function mockBillToRes(b) {
 function getOverview(params = {}) {
   const query = {
     month: params.month,
-    statUnit: params.statUnit,
-    timeUnit: params.timeUnit
+    scopeType: params.scopeType,
+    periodType: params.periodType
   }
   if (params.scope === 'group' && params.groupId != null && params.groupId !== '') {
     query.groupId = params.groupId
