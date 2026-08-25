@@ -6,16 +6,20 @@ const { loadConfig, findCategory, getCachedCategories } = require('../../utils/c
 const {
   BILL_TYPE,
   BILL_TYPE_OPTIONS,
+  SCOPE_TYPE,
   normalizeBillType,
+  normalizeScopeType,
+  scopeTypeLabel,
+  isGroupScope,
   isIncome
 } = require('../../utils/bill-map')
 
 function syncScopeFromApp(page) {
   const app = getApp()
-  const scope = app.globalData.billScope === 'group' ? 'group' : 'personal'
+  const scopeType = normalizeScopeType(app.globalData.scopeType)
   page.setData({
-    scope,
-    scopeLabel: scope === 'group' ? '群组' : '个人',
+    scopeType,
+    scopeLabel: scopeTypeLabel(scopeType),
     currentGroupId: app.globalData.currentGroupId
   })
 }
@@ -35,7 +39,8 @@ Page({
     totalExpenseText: '0.00',
     totalIncomeText: '0.00',
     guestMode: false,
-    scope: 'personal',
+    /** 1=个人，2=群组 */
+    scopeType: SCOPE_TYPE.PERSONAL,
     scopeLabel: '个人',
     currentGroupId: null,
     groupList: [],
@@ -92,7 +97,7 @@ Page({
     }
 
     await this.refreshGroupAvailability()
-    if (this.data.scope === 'group') {
+    if (isGroupScope(this.data.scopeType)) {
       await this.ensureGroupSelection()
     }
     this.loadBills()
@@ -128,13 +133,17 @@ Page({
       const hasGroups = groupList.length > 0
       this.setData({
         groupList,
-        groupNames: groupList.map((g) => g.name),
+        groupNames: groupList.map((g) => g.groupName),
         hasGroups,
         swapDisabled: !hasGroups
       })
-      if (!hasGroups && this.data.scope === 'group') {
-        getApp().globalData.billScope = 'personal'
-        this.setData({ scope: 'personal', scopeLabel: '个人', currentGroupId: null })
+      if (!hasGroups && isGroupScope(this.data.scopeType)) {
+        getApp().globalData.scopeType = SCOPE_TYPE.PERSONAL
+        this.setData({
+          scopeType: SCOPE_TYPE.PERSONAL,
+          scopeLabel: scopeTypeLabel(SCOPE_TYPE.PERSONAL),
+          currentGroupId: null
+        })
       }
     } catch (e) {
       this.setData({ hasGroups: false, swapDisabled: true, groupList: [], groupNames: [] })
@@ -148,10 +157,10 @@ Page({
       return
     }
     let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
-    let groupIndex = groupList.findIndex((g) => String(g.id) === String(currentGroupId))
+    let groupIndex = groupList.findIndex((g) => String(g.groupId) === String(currentGroupId))
     if (groupIndex < 0) {
       groupIndex = 0
-      currentGroupId = groupList[0].id
+      currentGroupId = groupList[0].groupId
     }
     getApp().globalData.currentGroupId = currentGroupId
     this.setData({ groupIndex, currentGroupId })
@@ -168,7 +177,7 @@ Page({
       return
     }
 
-    if (this.data.scope === 'group' && !this.data.currentGroupId) {
+    if (isGroupScope(this.data.scopeType) && !this.data.currentGroupId) {
       this.setData({
         guestMode: false,
         dayGroups: [],
@@ -185,8 +194,8 @@ Page({
         billType: this.data.billType, // null | 1 | 2
         categoryCode: this.data.categoryCode || undefined,
         accountId: this.data.accountId,
-        scope: this.data.scope,
-        groupId: this.data.scope === 'group' ? this.data.currentGroupId : null,
+        scopeType: this.data.scopeType,
+        groupId: isGroupScope(this.data.scopeType) ? this.data.currentGroupId : null,
         pageNum: this.data.pageNum,
         pageSize: this.data.pageSize
       })
@@ -250,14 +259,16 @@ Page({
       wx.showToast({ title: '暂无所属群组', icon: 'none' })
       return
     }
-    const next = this.data.scope === 'personal' ? 'group' : 'personal'
-    getApp().globalData.billScope = next
+    const next = isGroupScope(this.data.scopeType)
+      ? SCOPE_TYPE.PERSONAL
+      : SCOPE_TYPE.GROUP
+    getApp().globalData.scopeType = next
     this.setData({
-      scope: next,
-      scopeLabel: next === 'group' ? '群组' : '个人',
+      scopeType: next,
+      scopeLabel: scopeTypeLabel(next),
       pageNum: 1
     })
-    if (next === 'group') await this.ensureGroupSelection()
+    if (isGroupScope(next)) await this.ensureGroupSelection()
     this.loadBills()
   },
 
@@ -265,8 +276,8 @@ Page({
     const groupIndex = Number(e.detail.value)
     const group = this.data.groupList[groupIndex]
     if (!group) return
-    getApp().globalData.currentGroupId = group.id
-    this.setData({ groupIndex, currentGroupId: group.id, pageNum: 1 })
+    getApp().globalData.currentGroupId = group.groupId
+    this.setData({ groupIndex, currentGroupId: group.groupId, pageNum: 1 })
     this.loadBills()
   },
 

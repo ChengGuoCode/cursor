@@ -64,11 +64,12 @@
 
 ### 账单列表约定
 
-- 请求：`POST /api/bills/page`，body 为 `PageReqDTO<BillReqDTO>`
+- 请求：`POST /api/bill/page`，body 为 `PageReqDTO<BillReqDTO>`
 - 响应：`ResDTO<PageResDTO<BillResDTO>>`，列表字段为 `records`
-- `billType`：`1=收入`，`2=支出`
+- `billType`：展示「全部/收入/支出」，提交与存储为 `null/1/2`（1收入，2支出；全部为 null）
+- `scopeType`：与后端枚举一致，`1=个人`，`2=群组`（对应 PERSONAL / GROUP）；UI 只用中文「个人/群组」，不用 personal/group 字符串
 - 筛选账户用 `accountId`；展示可用返回的 `accountName`
-- 个人模式：不传 `groupId`；群组模式：传用户所属某个群组的 `groupId`
+- `scopeType=1`：不传 `groupId`；`scopeType=2`：传用户所属某个群组的 `groupId`
 - 无所属群组时，切换按钮置灰（不可切到群组）
 - 枚举：`GET /config/category`、`GET /config/account`
 - 账单页常用筛选（月/收支）常显；账户/类目收在「更多筛选」折叠区

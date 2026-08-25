@@ -5,12 +5,27 @@ const { mockGroups, mockBills } = require('../utils/mock')
  * 归一化群组列表响应。
  * 后端常见：ResDTO<List<Group>> → request 解包后直接是数组
  * 也兼容：{ list: [] } / { records: [] }
+ * 统一字段：groupId / groupName（兼容旧 id / name）
  */
+function normalizeGroupItem(g) {
+  if (!g || typeof g !== 'object') return g
+  const groupId = g.groupId != null ? g.groupId : g.id
+  const groupName = g.groupName || g.name || ''
+  return {
+    ...g,
+    groupId,
+    groupName,
+    id: groupId,
+    name: groupName
+  }
+}
+
 function normalizeGroupList(data) {
-  if (Array.isArray(data)) return data
-  if (data && Array.isArray(data.list)) return data.list
-  if (data && Array.isArray(data.records)) return data.records
-  return []
+  let list = []
+  if (Array.isArray(data)) list = data
+  else if (data && Array.isArray(data.list)) list = data.list
+  else if (data && Array.isArray(data.records)) list = data.records
+  return list.map(normalizeGroupItem)
 }
 
 /**

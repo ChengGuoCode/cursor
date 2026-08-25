@@ -5,8 +5,8 @@ const { shouldUseMock } = require('./utils/request')
 App({
   globalData: {
     userInfo: null,
-    /** 账单/概览作用域：personal | group */
-    billScope: 'personal',
+    /** 账单/概览作用域：1=个人，2=群组（与后端 ScopeType 一致） */
+    scopeType: 1,
     /** 群组模式下当前选中的群组 id */
     currentGroupId: null,
     // 切换为 false 并配置 apiBaseUrl 后走真实后端

@@ -3,6 +3,12 @@ const { getGroups } = require('../../api/group')
 const { formatMoney, formatMonthLabel } = require('../../utils/format')
 const { isLoggedIn } = require('../../utils/auth')
 const { loadConfig, findCategory } = require('../../utils/config-store')
+const {
+  SCOPE_TYPE,
+  normalizeScopeType,
+  scopeTypeLabel,
+  isGroupScope
+} = require('../../utils/bill-map')
 
 function emptyOverviewState(monthLabel) {
   return {
@@ -24,10 +30,10 @@ function emptyOverviewState(monthLabel) {
 
 function syncScopeFromApp(page) {
   const app = getApp()
-  const scope = app.globalData.billScope === 'group' ? 'group' : 'personal'
+  const scopeType = normalizeScopeType(app.globalData.scopeType)
   page.setData({
-    scope,
-    scopeLabel: scope === 'group' ? '群组' : '个人',
+    scopeType,
+    scopeLabel: scopeTypeLabel(scopeType),
     currentGroupId: app.globalData.currentGroupId
   })
 }
@@ -48,9 +54,9 @@ Page({
     categoryStats: [],
     recentBills: [],
     guestMode: false,
-    scopeType: 1,
+    /** 1=个人，2=群组 */
+    scopeType: SCOPE_TYPE.PERSONAL,
     periodType: 1,
-    scope: 'personal',
     scopeLabel: '个人',
     currentGroupId: null,
     groupList: [],
@@ -102,9 +108,13 @@ Page({
         hasGroups,
         swapDisabled: !hasGroups
       })
-      if (!hasGroups && this.data.scope === 'group') {
-        getApp().globalData.billScope = 'personal'
-        this.setData({ scope: 'personal', scopeLabel: '个人', currentGroupId: null })
+      if (!hasGroups && isGroupScope(this.data.scopeType)) {
+        getApp().globalData.scopeType = SCOPE_TYPE.PERSONAL
+        this.setData({
+          scopeType: SCOPE_TYPE.PERSONAL,
+          scopeLabel: scopeTypeLabel(SCOPE_TYPE.PERSONAL),
+          currentGroupId: null
+        })
       }
     } catch (e) {
       this.setData({ hasGroups: false, swapDisabled: true, groupList: [], groupNames: [] })
@@ -133,7 +143,7 @@ Page({
       return
     }
 
-    if (this.data.scope === 'group') {
+    if (isGroupScope(this.data.scopeType)) {
       await this.ensureGroupSelection()
       if (!this.data.currentGroupId) {
         this.setData({
@@ -150,8 +160,7 @@ Page({
         month: this.data.month,
         scopeType: this.data.scopeType,
         periodType: this.data.periodType,
-        scope: this.data.scope,
-        groupId: this.data.scope === 'group' ? this.data.currentGroupId : null
+        groupId: isGroupScope(this.data.scopeType) ? this.data.currentGroupId : null
       })
       const expense = Number(data.expense || 0)
       const income = Number(data.income || 0)
@@ -215,11 +224,13 @@ Page({
       wx.showToast({ title: '暂无所属群组', icon: 'none' })
       return
     }
-    const next = this.data.scope === 'personal' ? 'group' : 'personal'
-    getApp().globalData.billScope = next
+    const next = isGroupScope(this.data.scopeType)
+      ? SCOPE_TYPE.PERSONAL
+      : SCOPE_TYPE.GROUP
+    getApp().globalData.scopeType = next
     this.setData({
-      scope: next,
-      scopeLabel: next === 'group' ? '群组' : '个人'
+      scopeType: next,
+      scopeLabel: scopeTypeLabel(next)
     })
     await this.loadOverview()
   },
@@ -228,8 +239,8 @@ Page({
     const groupIndex = Number(e.detail.value)
     const group = this.data.groupList[groupIndex]
     if (!group) return
-    getApp().globalData.currentGroupId = group.id
-    this.setData({ groupIndex, currentGroupId: group.id })
+    getApp().globalData.currentGroupId = group.groupId
+    this.setData({ groupIndex, currentGroupId: group.groupId })
     this.loadOverview()
   },
 

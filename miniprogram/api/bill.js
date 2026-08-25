@@ -4,6 +4,8 @@ const {
   buildBillPageReq,
   mapBillRes,
   normalizeBillType,
+  normalizeScopeType,
+  isGroupScope,
   BILL_TYPE
 } = require('../utils/bill-map')
 
@@ -42,15 +44,16 @@ function mockBillToRes(b) {
 
 /**
  * 概览仪表盘 — GET /api/bill/overview
- * 个人：不传 groupId；群组：传具体 groupId
+ * scopeType: 1=个人，2=群组；群组时传具体 groupId
  */
 function getOverview(params = {}) {
+  const scopeType = normalizeScopeType(params.scopeType)
   const query = {
     month: params.month,
-    scopeType: params.scopeType,
+    scopeType,
     periodType: params.periodType
   }
-  if (params.scope === 'group' && params.groupId != null && params.groupId !== '') {
+  if (isGroupScope(scopeType) && params.groupId != null && params.groupId !== '') {
     query.groupId = params.groupId
   }
 
@@ -62,8 +65,9 @@ function getOverview(params = {}) {
 }
 
 /**
- * 账单分页 — POST /api/bills/page
+ * 账单分页 — POST /api/bill/page
  * billType: 1收入 / 2支出 / null全部
+ * scopeType: 1个人 / 2群组
  */
 function getBills(params = {}) {
   const billType = normalizeBillType(
@@ -77,7 +81,7 @@ function getBills(params = {}) {
     billType,
     categoryCode: params.categoryCode,
     accountId: params.accountId,
-    scopeType: params.scope || 1,
+    scopeType: normalizeScopeType(params.scopeType),
     groupId: params.groupId
   })
 

@@ -1,8 +1,8 @@
 /**
  * 账单字段约定（与后端对齐）
- * billType: 1=收入，2=支出，全部/未选则为 null
- * 个人账单：请求不传 groupId
- * 群组账单：请求传某个群组的 groupId
+ * billType: 1=收入，2=支出，全部为 null
+ * scopeType: 1=个人，2=群组
+ * 个人账单：不传 groupId；群组账单：传具体 groupId
  */
 
 const BILL_TYPE = {
@@ -17,10 +17,25 @@ const BILL_TYPE_OPTIONS = [
   { id: 2, name: '支出' }
 ]
 
+/** 与后端枚举一致：PERSONAL(1), GROUP(2) */
+const SCOPE_TYPE = {
+  PERSONAL: 1,
+  GROUP: 2
+}
+
+const SCOPE_TYPE_OPTIONS = [
+  { id: 1, name: '个人' },
+  { id: 2, name: '群组' }
+]
+
 function billTypeLabel(billType) {
-  if (billType === BILL_TYPE.INCOME || billType === 1) return '收入'
-  if (billType === BILL_TYPE.EXPENSE || billType === 2) return '支出'
+  if (Number(billType) === BILL_TYPE.INCOME) return '收入'
+  if (Number(billType) === BILL_TYPE.EXPENSE) return '支出'
   return '全部'
+}
+
+function scopeTypeLabel(scopeType) {
+  return Number(scopeType) === SCOPE_TYPE.GROUP ? '群组' : '个人'
 }
 
 function isIncome(billType) {
@@ -31,7 +46,15 @@ function isExpense(billType) {
   return Number(billType) === BILL_TYPE.EXPENSE
 }
 
-/** 归一化：全部 → null；合法 1/2 保留；其余 null */
+function isGroupScope(scopeType) {
+  return Number(scopeType) === SCOPE_TYPE.GROUP
+}
+
+function isPersonalScope(scopeType) {
+  return Number(scopeType) === SCOPE_TYPE.PERSONAL
+}
+
+/** 归一化 billType：全部 → null；合法 1/2 保留 */
 function normalizeBillType(billType) {
   if (billType === null || billType === undefined || billType === '' || billType === 'all') {
     return null
@@ -41,7 +64,14 @@ function normalizeBillType(billType) {
   return null
 }
 
-/** 后端 BillResDTO → 页面展示结构（billType 保持 1/2） */
+/** 归一化 scopeType：只允许 1/2，默认个人 */
+function normalizeScopeType(scopeType) {
+  const n = Number(scopeType)
+  if (n === SCOPE_TYPE.GROUP) return SCOPE_TYPE.GROUP
+  return SCOPE_TYPE.PERSONAL
+}
+
+/** 后端 BillResDTO → 页面展示结构 */
 function mapBillRes(dto) {
   if (!dto) return null
   const billType = normalizeBillType(dto.billType)
@@ -65,22 +95,23 @@ function mapBillRes(dto) {
 
 /**
  * 组装 PageReqDTO<BillReqDTO>
- * billType 为 null（全部）时不写入 data，由调用方也可显式传 null
+ * billType 全部为 null；scopeType 为 1/2
  */
 function buildBillPageReq(options = {}) {
   const data = {}
   if (options.month) data.month = options.month
 
-  const billType = normalizeBillType(options.billType)
-  // 全部：提交 null；收入/支出：1/2
-  data.billType = billType
+  data.billType = normalizeBillType(options.billType)
+
+  const scopeType = normalizeScopeType(options.scopeType)
+  data.scopeType = scopeType
 
   if (options.categoryCode) data.categoryCode = options.categoryCode
   if (options.accountId != null && options.accountId !== '') {
     data.accountId = Number(options.accountId)
   }
 
-  if (options.scope === 'group' && options.groupId != null && options.groupId !== '') {
+  if (scopeType === SCOPE_TYPE.GROUP && options.groupId != null && options.groupId !== '') {
     data.groupId = Number(options.groupId)
   }
 
@@ -94,10 +125,16 @@ function buildBillPageReq(options = {}) {
 module.exports = {
   BILL_TYPE,
   BILL_TYPE_OPTIONS,
+  SCOPE_TYPE,
+  SCOPE_TYPE_OPTIONS,
   billTypeLabel,
+  scopeTypeLabel,
   isIncome,
   isExpense,
+  isGroupScope,
+  isPersonalScope,
   normalizeBillType,
+  normalizeScopeType,
   mapBillRes,
   buildBillPageReq
 }

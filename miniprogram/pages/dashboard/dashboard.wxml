@@ -3,7 +3,7 @@
     <view class="scope-left">
       <text class="scope-title">{{scopeLabel}}概览</text>
       <picker
-        wx:if="{{scope === 'group' && groupNames.length}}"
+        wx:if="{{scopeType === 2 && groupNames.length}}"
         range="{{groupNames}}"
         value="{{groupIndex}}"
         bindchange="onGroupPick"
@@ -17,7 +17,7 @@
       hover-class="{{swapDisabled ? '' : 'swap-btn-hover'}}"
     >
       <view class="swap-icon">⇄</view>
-      <text class="swap-text">{{scope === 'personal' ? '切群组' : '切个人'}}</text>
+      <text class="swap-text">{{scopeType === 1 ? '切群组' : '切个人'}}</text>
     </view>
   </view>
 

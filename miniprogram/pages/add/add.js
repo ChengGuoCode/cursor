@@ -82,7 +82,7 @@ Page({
       const groups = list || []
       this.setData({
         groups,
-        groupNames: ['不计入群组', ...groups.map((g) => g.name)]
+        groupNames: ['不计入群组', ...groups.map((g) => g.groupName)]
       })
     } catch (err) {
       console.warn(err)
@@ -171,7 +171,7 @@ Page({
         categoryCode: this.data.categoryCode,
         accountId: account.accountId,
         remark: this.data.remark,
-        groupId: group ? group.id : null,
+        groupId: group ? group.groupId : null,
         billDate: this.data.date
       })
       wx.showToast({ title: '已保存', icon: 'success' })

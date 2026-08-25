@@ -3,7 +3,7 @@
     <view class="scope-left">
       <text class="scope-title">{{scopeLabel}}账单</text>
       <picker
-        wx:if="{{scope === 'group' && groupNames.length}}"
+        wx:if="{{scopeType === 2 && groupNames.length}}"
         range="{{groupNames}}"
         value="{{groupIndex}}"
         bindchange="onGroupPick"
@@ -17,7 +17,7 @@
       hover-class="{{swapDisabled ? '' : 'swap-btn-hover'}}"
     >
       <view class="swap-icon">⇄</view>
-      <text class="swap-text">{{scope === 'personal' ? '切群组' : '切个人'}}</text>
+      <text class="swap-text">{{scopeType === 1 ? '切群组' : '切个人'}}</text>
     </view>
   </view>
 
@@ -108,7 +108,7 @@
   </view>
 
   <view wx:else class="empty-wrap soft-panel">
-    <view>{{scope === 'group' ? '该群组本月还没有账单' : '这个月还没有账单'}}</view>
+    <view>{{scopeType === 2 ? '该群组本月还没有账单' : '这个月还没有账单'}}</view>
     <button class="btn-primary empty-btn" bindtap="goAdd">记一笔</button>
   </view>
 </view>
