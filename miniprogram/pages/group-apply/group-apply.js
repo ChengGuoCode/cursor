@@ -5,6 +5,7 @@ const {
   selectGroup
 } = require('../../api/group')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
+const { toastError } = require('../../utils/request')
 const {
   APPLY_STATUS,
   APPLY_STATUS_OPTIONS,
@@ -66,7 +67,7 @@ Page({
         }))
       })
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      toastError(err, '加载失败')
     } finally {
       wx.hideNavigationBarLoading()
     }
@@ -93,7 +94,7 @@ Page({
       wx.showToast({ title: '已通过', icon: 'success' })
       this.loadList()
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+      toastError(err, '操作失败')
     }
   },
 
@@ -115,7 +116,7 @@ Page({
           wx.showToast({ title: '已拒绝', icon: 'success' })
           this.loadList()
         } catch (err) {
-          wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+          toastError(err, '操作失败')
         }
       }
     })
@@ -134,7 +135,7 @@ Page({
           wx.showToast({ title: '已取消', icon: 'success' })
           this.loadList()
         } catch (err) {
-          wx.showToast({ title: err.message || '取消失败', icon: 'none' })
+          toastError(err, '取消失败')
         }
       }
     })

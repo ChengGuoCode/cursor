@@ -6,6 +6,7 @@ const {
   getGroups
 } = require('../../api/group')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
+const { toastError } = require('../../utils/request')
 const {
   ROLE_TYPE,
   MEMBER_STATUS,
@@ -92,7 +93,7 @@ Page({
         loading: false
       })
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      toastError(err, '加载失败')
       this.setData({ loading: false, empty: true })
     } finally {
       wx.hideNavigationBarLoading()
@@ -129,7 +130,7 @@ Page({
           wx.showToast({ title: '已刷新', icon: 'success' })
           this.loadDetail()
         } catch (err) {
-          wx.showToast({ title: err.message || '刷新失败', icon: 'none' })
+          toastError(err, '刷新失败')
         }
       }
     })
@@ -155,7 +156,7 @@ Page({
           wx.showToast({ title: '已更新', icon: 'success' })
           this.loadDetail()
         } catch (err) {
-          wx.showToast({ title: err.message || '更新失败', icon: 'none' })
+          toastError(err, '更新失败')
         }
       }
     })
@@ -181,7 +182,7 @@ Page({
           wx.showToast({ title: '已更新', icon: 'success' })
           this.loadDetail()
         } catch (err) {
-          wx.showToast({ title: err.message || '更新失败', icon: 'none' })
+          toastError(err, '更新失败')
         }
       }
     })
@@ -284,7 +285,7 @@ Page({
       wx.showToast({ title: '已更新', icon: 'success' })
       this.loadDetail()
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+      toastError(err, '操作失败')
     }
   },
 
@@ -315,7 +316,7 @@ Page({
           wx.showToast({ title: '已解散', icon: 'success' })
           setTimeout(() => wx.navigateBack(), 400)
         } catch (err) {
-          wx.showToast({ title: err.message || '解散失败', icon: 'none' })
+          toastError(err, '解散失败')
         }
       }
     })
@@ -337,7 +338,7 @@ Page({
           wx.showToast({ title: '已退出', icon: 'success' })
           setTimeout(() => wx.navigateBack(), 400)
         } catch (err) {
-          wx.showToast({ title: err.message || '退出失败', icon: 'none' })
+          toastError(err, '退出失败')
         }
       }
     })

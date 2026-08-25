@@ -1,4 +1,5 @@
 const { createBill } = require('../../api/bill')
+const { toastError } = require('../../utils/request')
 const { getGroups } = require('../../api/group')
 const { formatDate } = require('../../utils/format')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
@@ -185,7 +186,7 @@ Page({
         wx.switchTab({ url: '/pages/bills/bills' })
       }, 400)
     } catch (err) {
-      wx.showToast({ title: err.message || '保存失败', icon: 'none' })
+      toastError(err, '保存失败')
     } finally {
       this.setData({ submitting: false })
     }

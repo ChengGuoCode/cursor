@@ -1,6 +1,6 @@
 const { getProfile, wxLogin, logout } = require('../../api/user')
 const { isLoggedIn, clearSession } = require('../../utils/auth')
-const { shouldUseMock } = require('../../utils/request')
+const { shouldUseMock, toastError } = require('../../utils/request')
 
 function applyUserToView(user) {
   const safe = user || {}
@@ -93,21 +93,16 @@ Page({
                 motto: '资料暂未加载，下拉或重新进入可重试'
               })
             )
-            wx.showToast({
-              title: (profileErr && profileErr.message) || '登录成功，资料加载失败',
-              icon: 'none',
-              duration: 2500
-            })
+            toastError(
+              profileErr,
+              '登录成功，资料加载失败'
+            )
           }
         } catch (err) {
           // 登录失败：清会话，保持未登录，展示后端 msg
           clearSession()
           this.setData({ user: {}, avatarText: '记', avatarUrl: '' })
-          wx.showToast({
-            title: (err && err.message) || '登录失败',
-            icon: 'none',
-            duration: 2500
-          })
+          toastError(err, '登录失败')
         } finally {
           this.setData({ loggingIn: false })
         }

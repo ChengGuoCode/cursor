@@ -45,8 +45,14 @@
    - `api/user.js` — 登录 / 资料
    - `api/bill.js` — 概览 / 账单 CRUD
    - `api/group.js` — 群组 / 结算
-3. 统一请求封装：`utils/request.js`（Bearer Token、`{ code, data, message }` 约定）。
-4. 登录会话：`utils/auth.js`（token 落盘 / 清理 / 401 引导）。
+3. 统一请求封装：`utils/request.js`（Bearer Token、ResDTO、全局 401/500 异常捕获）。
+4. 登录会话：`utils/auth.js`（token 落盘 / 清理 / 401 跳转登录）。
+
+### 异常处理（对齐 GlobalExceptionHandler）
+
+- HTTP **401**（`FfAuthException`）：清会话，toast 后跳转「我的」登录
+- HTTP **500**：toast 展示后端 `ex.getMessage()`，约 2.8s 后自动消失
+- ResDTO `code !== 0`：同样 toast `msg`；页面 `catch` 用 `toastError` 避免重复提示
 
 ### 登录闭环
 

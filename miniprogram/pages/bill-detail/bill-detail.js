@@ -1,4 +1,5 @@
 const { getBillDetail, deleteBill } = require('../../api/bill')
+const { toastError } = require('../../utils/request')
 const { formatMoney, formatDate } = require('../../utils/format')
 const { requireLogin } = require('../../utils/auth')
 const { loadConfig, findCategory } = require('../../utils/config-store')
@@ -39,7 +40,7 @@ Page({
         }
       })
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      toastError(err, '加载失败')
     } finally {
       wx.hideLoading()
     }
@@ -59,7 +60,7 @@ Page({
           wx.showToast({ title: '已删除', icon: 'success' })
           setTimeout(() => wx.navigateBack(), 400)
         } catch (err) {
-          wx.showToast({ title: err.message || '删除失败', icon: 'none' })
+          toastError(err, '删除失败')
         }
       }
     })

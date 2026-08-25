@@ -1,4 +1,5 @@
 const { getBills } = require('../../api/bill')
+const { toastError } = require('../../utils/request')
 const { getGroups } = require('../../api/group')
 const { formatMoney, formatMonthLabel, groupBillsByDate } = require('../../utils/format')
 const { isLoggedIn } = require('../../utils/auth')
@@ -243,7 +244,7 @@ Page({
           totalIncomeText: '0.00'
         })
       } else {
-        wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+        toastError(err, '加载失败')
       }
     } finally {
       wx.hideNavigationBarLoading()

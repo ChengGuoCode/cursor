@@ -1,4 +1,5 @@
 const { getOverview } = require('../../api/bill')
+const { toastError } = require('../../utils/request')
 const { getGroups } = require('../../api/group')
 const { formatMoney, formatMonthLabel } = require('../../utils/format')
 const { isLoggedIn } = require('../../utils/auth')
@@ -212,7 +213,7 @@ Page({
       if (err && err.code === 401) {
         this.setData(emptyOverviewState(this.data.monthLabel))
       } else {
-        wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+        toastError(err, '加载失败')
       }
     } finally {
       wx.hideNavigationBarLoading()

@@ -5,6 +5,7 @@ const {
   selectGroup
 } = require('../../api/group')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
+const { toastError } = require('../../utils/request')
 const {
   findMyMember,
   roleTypeLabel,
@@ -72,7 +73,7 @@ Page({
       if (err && err.code === 401) {
         this.setData({ groups: [], guestMode: true })
       } else {
-        wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+        toastError(err, '加载失败')
       }
     } finally {
       wx.hideNavigationBarLoading()
@@ -134,7 +135,7 @@ Page({
       this.setData({ panel: '' })
       this.loadGroups()
     } catch (err) {
-      wx.showToast({ title: err.message || '创建失败', icon: 'none' })
+      toastError(err, '创建失败')
     } finally {
       this.setData({ submitting: false })
     }
@@ -156,7 +157,7 @@ Page({
       wx.showToast({ title: '已提交申请', icon: 'success' })
       this.setData({ panel: '' })
     } catch (err) {
-      wx.showToast({ title: err.message || '申请失败', icon: 'none' })
+      toastError(err, '申请失败')
     } finally {
       this.setData({ submitting: false })
     }
