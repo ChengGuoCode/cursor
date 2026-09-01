@@ -2,8 +2,7 @@ const {
   selectGroup,
   updateGroup,
   updateMemberName,
-  exitGroup,
-  getGroups
+  exitGroup
 } = require('../../api/group')
 const { getProfile } = require('../../api/user')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
@@ -18,24 +17,17 @@ const {
   canReview
 } = require('../../utils/group-map')
 
-function currentUserId() {
-  const user = (getApp().globalData && getApp().globalData.userInfo) || {}
-  // 与群成员 userId / ownerUserId 对齐，优先业务 userId
+function readUserId(user) {
+  if (!user || typeof user !== 'object') return ''
   if (user.userId != null && user.userId !== '') return user.userId
   if (user.id != null && user.id !== '') return user.id
   if (user.user_id != null && user.user_id !== '') return user.user_id
   return ''
 }
 
-async function ensureCurrentUserId() {
-  // 群组权限依赖准确的业务 userId，详情页每次尝试刷新资料
-  try {
-    const user = await getProfile()
-    if (user) getApp().globalData.userInfo = user
-  } catch (e) {
-    /* 刷新失败则用缓存 */
-  }
-  return currentUserId()
+function isActiveMember(m) {
+  // 后端可能返回 status: null，视为在群正常
+  return m.status == null || Number(m.status) === MEMBER_STATUS.NORMAL
 }
 
 Page({
@@ -76,32 +68,17 @@ Page({
     this.setData({ loading: true })
     wx.showNavigationBarLoading()
     try {
-      const uid = await ensureCurrentUserId()
-      let group = await selectGroup().catch(() => null)
+      // 详情以 select 为准（含 groupMembers / ownerUserId），不要用 list 覆盖掉权限字段
+      const [profile, group] = await Promise.all([
+        getProfile().catch(() => null),
+        selectGroup().catch(() => null)
+      ])
 
-      // select 若与目标 groupId 不一致，用 list 兜底，并尽量保留 select 的成员用于角色判断
-      const wantId = this.data.groupId
-      if (wantId && group && String(group.groupId) !== String(wantId)) {
-        const selectSnapshot = group
-        const { list } = await getGroups()
-        const found = (list || []).find((g) => String(g.groupId) === String(wantId))
-        if (found) {
-          const members =
-            (found.groupMembers && found.groupMembers.length
-              ? found.groupMembers
-              : null) ||
-            (String(selectSnapshot.groupId) === String(wantId)
-              ? selectSnapshot.groupMembers
-              : []) ||
-            []
-          group = {
-            ...found,
-            groupMembers: members,
-            ownerUserId: found.ownerUserId || selectSnapshot.ownerUserId,
-            inviteCode: found.inviteCode || selectSnapshot.inviteCode
-          }
-        }
+      if (profile) {
+        getApp().globalData.userInfo = profile
       }
+
+      const uid = readUserId(profile) || readUserId(getApp().globalData.userInfo)
 
       if (!group) {
         this.setData({
@@ -119,8 +96,8 @@ Page({
       const owner = checkIsOwner(myRoleType)
       const manage = canReview(myRoleType)
       const members = (group.groupMembers || [])
-        .filter((m) => Number(m.status) === MEMBER_STATUS.NORMAL)
-        .sort((a, b) => (a.sortNo || 0) - (b.sortNo || 0) || a.roleType - b.roleType)
+        .filter(isActiveMember)
+        .sort((a, b) => (a.sortNo || 0) - (b.sortNo || 0) || (a.roleType || 0) - (b.roleType || 0))
 
       getApp().globalData.currentGroupId = group.groupId
 
@@ -225,7 +202,7 @@ Page({
 
   onEditMyName() {
     if (!requireLogin()) return
-    const mine = findMyMember(this.data.group, currentUserId())
+    const mine = findMyMember(this.data.group, readUserId(getApp().globalData.userInfo))
     wx.showModal({
       title: '修改群昵称',
       editable: true,
