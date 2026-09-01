@@ -94,8 +94,44 @@ function normalizeGroup(dto) {
     ownerUserId: dto.ownerUserId,
     inviteCode: dto.inviteCode || '',
     status: dto.status != null ? Number(dto.status) : GROUP_STATUS.NORMAL,
+    createTime: dto.createTime != null ? dto.createTime : dto.createdAt || null,
     groupMembers: members,
     memberCount: rawMembers.length
+  }
+}
+
+/** 解析群组 createTime，用于比较新旧 */
+function toCreateTimeMs(value) {
+  if (value == null || value === '') return 0
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  const t = new Date(value).getTime()
+  return Number.isFinite(t) ? t : 0
+}
+
+/**
+ * 筛选 status=1 的生效群；多个时取 createTime 最新的一条
+ * @returns {{ activeList: Array, newest: object|null, newestIndex: number }}
+ */
+function pickActiveGroups(groupList = []) {
+  const activeList = (groupList || []).filter(
+    (g) => Number(g.status) === GROUP_STATUS.NORMAL
+  )
+  if (!activeList.length) {
+    return { activeList: [], newest: null, newestIndex: -1 }
+  }
+  let newestIndex = 0
+  let newestMs = toCreateTimeMs(activeList[0].createTime)
+  for (let i = 1; i < activeList.length; i += 1) {
+    const ms = toCreateTimeMs(activeList[i].createTime)
+    if (ms >= newestMs) {
+      newestMs = ms
+      newestIndex = i
+    }
+  }
+  return {
+    activeList,
+    newest: activeList[newestIndex],
+    newestIndex
   }
 }
 
@@ -189,5 +225,7 @@ module.exports = {
   normalizeMember,
   normalizeApply,
   findMyMember,
-  resolveMyRoleType
+  resolveMyRoleType,
+  toCreateTimeMs,
+  pickActiveGroups
 }

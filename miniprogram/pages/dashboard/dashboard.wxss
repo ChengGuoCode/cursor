@@ -19,11 +19,11 @@
   color: var(--color-brand);
 }
 
-.group-name-text {
+.group-picker {
   font-size: 24rpx;
   color: var(--color-text-secondary);
   padding: 6rpx 14rpx;
-  border-radius: 8rpx;
+  border-radius: 999rpx;
   background: rgba(11, 61, 46, 0.06);
   max-width: 280rpx;
   overflow: hidden;

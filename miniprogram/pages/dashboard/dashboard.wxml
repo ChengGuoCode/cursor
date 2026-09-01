@@ -2,9 +2,14 @@
   <view class="scope-bar">
     <view class="scope-left">
       <text class="scope-title">{{scopeLabel}}概览</text>
-      <view wx:if="{{scopeType === 2 && currentGroupName}}" class="group-name-text">
-        {{currentGroupName}}
-      </view>
+      <picker
+        wx:if="{{scopeType === 2 && groupNames.length}}"
+        range="{{groupNames}}"
+        value="{{groupIndex}}"
+        bindchange="onGroupPick"
+      >
+        <view class="group-picker">{{groupNames[groupIndex]}} ▾</view>
+      </picker>
     </view>
     <view
       class="swap-btn {{swapDisabled ? 'disabled' : ''}}"
