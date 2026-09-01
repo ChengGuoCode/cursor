@@ -231,7 +231,7 @@ Page({
     const index = Number(e.currentTarget.dataset.index)
     const member = this.data.members[index]
     if (!member) return
-    if (String(member.userId) === String(currentUserId())) {
+    if (String(member.userId) === String(readUserId(getApp().globalData.userInfo))) {
       wx.showToast({ title: '不能操作自己', icon: 'none' })
       return
     }
