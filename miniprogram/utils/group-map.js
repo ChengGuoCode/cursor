@@ -102,16 +102,18 @@ function normalizeGroup(dto) {
 function normalizeMember(m) {
   if (!m || typeof m !== 'object') return null
   const memberName = m.memberName || m.nickname || m.name || ''
+  const hasRole = m.roleType != null && m.roleType !== ''
+  const roleType = hasRole ? Number(m.roleType) : null
   return {
     ...m,
     groupMemberId: m.groupMemberId,
     groupId: m.groupId,
     userId: m.userId,
-    roleType: m.roleType != null ? Number(m.roleType) : ROLE_TYPE.MEMBER,
+    roleType: Number.isFinite(roleType) ? roleType : null,
     memberName,
     sortNo: m.sortNo,
     status: m.status != null ? Number(m.status) : MEMBER_STATUS.NORMAL,
-    roleLabel: roleTypeLabel(m.roleType),
+    roleLabel: roleTypeLabel(roleType),
     avatarText: (memberName || '?').slice(0, 1)
   }
 }
@@ -152,19 +154,22 @@ function findMyMember(group, userId) {
 
 /**
  * 解析当前用户在群内角色。
- * 优先成员表 roleType；匹配不到时用 ownerUserId 兜底为群主。
+ * 1) ownerUserId 与当前用户一致 → 群主（优先，避免成员缺 roleType 被误判）
+ * 2) 否则用成员表 roleType（1群主/2管理/3成员）
  */
 function resolveMyRoleType(group, userId) {
+  if (!group || userId == null || userId === '') return null
+
+  const isGroupOwner =
+    group.ownerUserId != null && String(group.ownerUserId) === String(userId)
+  if (isGroupOwner) return ROLE_TYPE.OWNER
+
   const mine = findMyMember(group, userId)
-  if (mine && mine.roleType != null) return Number(mine.roleType)
-  if (
-    userId != null &&
-    userId !== '' &&
-    group &&
-    group.ownerUserId != null &&
-    String(group.ownerUserId) === String(userId)
-  ) {
-    return ROLE_TYPE.OWNER
+  if (!mine) return null
+
+  const role = Number(mine.roleType)
+  if (role === ROLE_TYPE.OWNER || role === ROLE_TYPE.ADMIN || role === ROLE_TYPE.MEMBER) {
+    return role
   }
   return null
 }
