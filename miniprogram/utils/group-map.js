@@ -73,25 +73,9 @@ function normalizeGroup(dto) {
   if (!dto || typeof dto !== 'object') return null
   const groupId = dto.groupId != null ? dto.groupId : dto.id
   const groupName = dto.groupName || dto.name || ''
-  const members = Array.isArray(dto.groupMembers)
-    ? dto.groupMembers.map(normalizeMember).filter(Boolean)
-    : []
-  const activeMembers = members.filter((m) => Number(m.status) === MEMBER_STATUS.NORMAL)
-  const status = dto.status != null ? Number(dto.status) : GROUP_STATUS.NORMAL
-
-  // 有成员列表时按在群人数统计；否则用后端 memberCount；
-  // 正常群至少算上创建者自己（list 常不带 groupMembers，新建后易显示 0 人）
-  let memberCount
-  if (members.length > 0) {
-    memberCount = activeMembers.length
-  } else if (dto.memberCount != null && dto.memberCount !== '' && Number(dto.memberCount) > 0) {
-    memberCount = Number(dto.memberCount)
-  } else if (status === GROUP_STATUS.DISSOLVED) {
-    memberCount = 0
-  } else {
-    memberCount = 1
-  }
-
+  // 人数 = 后端 data.groupMembers 集合大小（含自己），不做本地兜底推算
+  const rawMembers = Array.isArray(dto.groupMembers) ? dto.groupMembers : []
+  const members = rawMembers.map(normalizeMember).filter(Boolean)
   return {
     ...dto,
     groupId,
@@ -100,9 +84,9 @@ function normalizeGroup(dto) {
     name: groupName,
     ownerUserId: dto.ownerUserId,
     inviteCode: dto.inviteCode || '',
-    status,
+    status: dto.status != null ? Number(dto.status) : GROUP_STATUS.NORMAL,
     groupMembers: members,
-    memberCount
+    memberCount: rawMembers.length
   }
 }
 
