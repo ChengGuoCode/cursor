@@ -99,8 +99,6 @@ Page({
       .filter(isActiveMember)
       .sort((a, b) => (a.sortNo || 0) - (b.sortNo || 0) || (a.roleType || 0) - (b.roleType || 0))
 
-    getApp().globalData.currentGroupId = group.groupId
-
     this.setData({
       group,
       groupId: group.groupId,
