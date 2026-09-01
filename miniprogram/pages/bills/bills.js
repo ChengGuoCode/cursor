@@ -1,9 +1,10 @@
 const { getBills } = require('../../api/bill')
 const { toastError } = require('../../utils/request')
-const { getGroups, selectGroup } = require('../../api/group')
+const { getGroups } = require('../../api/group')
 const { formatMoney, formatMonthLabel, groupBillsByDate } = require('../../utils/format')
 const { isLoggedIn } = require('../../utils/auth')
 const { loadConfig, findCategory, getCachedCategories } = require('../../utils/config-store')
+const { GROUP_STATUS } = require('../../utils/group-map')
 const {
   BILL_TYPE,
   BILL_TYPE_OPTIONS,
@@ -102,9 +103,6 @@ Page({
     }
 
     await this.refreshGroupAvailability()
-    if (isGroupScope(this.data.scopeType)) {
-      await this.ensureGroupSelection()
-    }
     this.loadBills()
   },
 
@@ -131,43 +129,96 @@ Page({
     })
   },
 
+  /**
+   * 仅用 group/list：
+   * - 集合为空 → 个人，切换置灰
+   * - 有 status=1 → 默认群组，下拉选中该生效群
+   * - 无 status=1 → 默认个人；集合非空仍可切换
+   */
   async refreshGroupAvailability() {
     try {
-      const [{ list }, current] = await Promise.all([
-        getGroups(),
-        selectGroup().catch(() => null)
-      ])
+      const { list } = await getGroups()
       const groupList = list || []
-      const hasGroups = groupList.length > 0
-      const scope = applyScopePreference(groupList, {
-        currentGroupId: current && current.groupId != null ? current.groupId : undefined
-      })
+      const canSwap = groupList.length > 0
+      const activeIndex = groupList.findIndex(
+        (g) => Number(g.status) === GROUP_STATUS.NORMAL
+      )
+      const hasActive = activeIndex >= 0
+      const app = getApp()
+
+      let scopeType = SCOPE_TYPE.PERSONAL
+      let currentGroupId = null
+      let groupIndex = 0
+
+      if (!canSwap) {
+        app.globalData.scopePreferPersonal = false
+        setGlobalScopeType(SCOPE_TYPE.PERSONAL)
+        app.globalData.currentGroupId = null
+      } else if (hasActive) {
+        const active = groupList[activeIndex]
+        const scope = applyScopePreference(groupList, {
+          currentGroupId: active.groupId
+        })
+        scopeType = scope.scopeType
+        currentGroupId = scope.currentGroupId
+        groupIndex = scope.groupIndex >= 0 ? scope.groupIndex : activeIndex
+      } else {
+        // 有群但无生效群：默认个人；切群组时用列表第一项（或已选中项）
+        groupIndex = Math.max(
+          0,
+          groupList.findIndex(
+            (g) => String(g.groupId) === String(app.globalData.currentGroupId)
+          )
+        )
+        currentGroupId = groupList[groupIndex].groupId
+        app.globalData.currentGroupId = currentGroupId
+
+        if (app.globalData.scopePreferPersonal) {
+          scopeType = SCOPE_TYPE.PERSONAL
+          app.globalData.scopeType = SCOPE_TYPE.PERSONAL
+        } else if (normalizeScopeType(app.globalData.scopeType) === SCOPE_TYPE.GROUP) {
+          // 用户本会话已切到群组，保持
+          scopeType = SCOPE_TYPE.GROUP
+        } else {
+          scopeType = SCOPE_TYPE.PERSONAL
+          setGlobalScopeType(SCOPE_TYPE.PERSONAL)
+        }
+      }
+
       this.setData({
         groupList,
         groupNames: groupList.map((g) => g.groupName),
-        hasGroups,
-        swapDisabled: !hasGroups,
-        scopeType: scope.scopeType,
-        scopeLabel: scope.scopeLabel,
-        currentGroupId: scope.currentGroupId,
-        groupIndex: scope.groupIndex
+        hasGroups: canSwap,
+        swapDisabled: !canSwap,
+        scopeType,
+        scopeLabel: scopeTypeLabel(scopeType),
+        currentGroupId: canSwap ? currentGroupId : null,
+        groupIndex
       })
     } catch (e) {
-      this.setData({ hasGroups: false, swapDisabled: true, groupList: [], groupNames: [] })
+      this.setData({
+        hasGroups: false,
+        swapDisabled: true,
+        groupList: [],
+        groupNames: [],
+        currentGroupId: null
+      })
     }
   },
 
-  async ensureGroupSelection() {
+  ensureGroupSelection() {
     const groupList = this.data.groupList || []
     if (!groupList.length) {
-      this.setData({ currentGroupId: null })
+      this.setData({ currentGroupId: null, groupIndex: 0 })
       return
     }
     let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
     let groupIndex = groupList.findIndex((g) => String(g.groupId) === String(currentGroupId))
     if (groupIndex < 0) {
-      groupIndex = 0
-      currentGroupId = groupList[0].groupId
+      // 优先落到 status=1 的生效群
+      groupIndex = groupList.findIndex((g) => Number(g.status) === GROUP_STATUS.NORMAL)
+      if (groupIndex < 0) groupIndex = 0
+      currentGroupId = groupList[groupIndex].groupId
     }
     getApp().globalData.currentGroupId = currentGroupId
     this.setData({ groupIndex, currentGroupId })
@@ -185,13 +236,16 @@ Page({
     }
 
     if (isGroupScope(this.data.scopeType) && !this.data.currentGroupId) {
-      this.setData({
-        guestMode: false,
-        dayGroups: [],
-        totalExpenseText: '0.00',
-        totalIncomeText: '0.00'
-      })
-      return
+      this.ensureGroupSelection()
+      if (!this.data.currentGroupId) {
+        this.setData({
+          guestMode: false,
+          dayGroups: [],
+          totalExpenseText: '0.00',
+          totalIncomeText: '0.00'
+        })
+        return
+      }
     }
 
     wx.showNavigationBarLoading()
@@ -275,7 +329,7 @@ Page({
       scopeLabel: scopeTypeLabel(next),
       pageNum: 1
     })
-    if (isGroupScope(next)) await this.ensureGroupSelection()
+    if (isGroupScope(next)) this.ensureGroupSelection()
     this.loadBills()
   },
 
