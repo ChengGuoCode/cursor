@@ -1,6 +1,6 @@
 const { getOverview } = require('../../api/bill')
 const { toastError } = require('../../utils/request')
-const { getGroups, selectGroup } = require('../../api/group')
+const { selectGroup } = require('../../api/group')
 const { formatMoney, formatMonthLabel } = require('../../utils/format')
 const { isLoggedIn } = require('../../utils/auth')
 const { loadConfig, findCategory } = require('../../utils/config-store')
@@ -65,7 +65,6 @@ Page({
     scopeLabel: '个人',
     currentGroupId: null,
     currentGroupName: '',
-    groupList: [],
     hasGroups: false,
     swapDisabled: true
   },
@@ -102,21 +101,20 @@ Page({
     await this.loadOverview()
   },
 
+  /**
+   * 仅用 group/select 判断是否加入群组：
+   * 有当前群 → 默认可切群组/个人；无当前群 → 仅个人
+   */
   async refreshGroupAvailability() {
     try {
-      const [{ list }, current] = await Promise.all([
-        getGroups(),
-        selectGroup().catch(() => null)
-      ])
-      const groupList = list || []
-      const hasGroups = groupList.length > 0
-      const scope = applyScopePreference(groupList, {
-        currentGroupId: current && current.groupId != null ? current.groupId : undefined
+      const current = await selectGroup().catch(() => null)
+      const hasGroups = !!(current && current.groupId != null && current.groupId !== '')
+      const scope = applyScopePreference(hasGroups ? [current] : [], {
+        currentGroupId: hasGroups ? current.groupId : undefined
       })
       const currentGroupName =
         (current && current.groupName) || scope.currentGroupName || ''
       this.setData({
-        groupList,
         hasGroups,
         swapDisabled: !hasGroups,
         scopeType: scope.scopeType,
@@ -128,29 +126,10 @@ Page({
       this.setData({
         hasGroups: false,
         swapDisabled: true,
-        groupList: [],
+        currentGroupId: null,
         currentGroupName: ''
       })
     }
-  },
-
-  async ensureGroupSelection() {
-    const groupList = this.data.groupList || []
-    if (!groupList.length) {
-      this.setData({ currentGroupId: null, currentGroupName: '' })
-      return
-    }
-    let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
-    let group = groupList.find((g) => String(g.groupId) === String(currentGroupId))
-    if (!group) {
-      group = groupList[0]
-      currentGroupId = group.groupId
-    }
-    getApp().globalData.currentGroupId = currentGroupId
-    this.setData({
-      currentGroupId,
-      currentGroupName: group.groupName || this.data.currentGroupName || ''
-    })
   },
 
   async loadOverview() {
@@ -159,15 +138,12 @@ Page({
       return
     }
 
-    if (isGroupScope(this.data.scopeType)) {
-      await this.ensureGroupSelection()
-      if (!this.data.currentGroupId) {
-        this.setData({
-          ...emptyOverviewState(this.data.monthLabel),
-          guestMode: false
-        })
-        return
-      }
+    if (isGroupScope(this.data.scopeType) && !this.data.currentGroupId) {
+      this.setData({
+        ...emptyOverviewState(this.data.monthLabel),
+        guestMode: false
+      })
+      return
     }
 
     wx.showNavigationBarLoading()

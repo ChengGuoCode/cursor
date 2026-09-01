@@ -34,7 +34,7 @@ function normalizeGroupList(data) {
 
 /**
  * 我的群组列表 — GET /api/group/list
- * 概览/账单/记账仍依赖此接口；失败降级为空列表
+ * 群组页/账单等依赖；失败降级为空列表
  */
 function getGroups() {
   if (shouldUseMock()) {
