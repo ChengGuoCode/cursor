@@ -31,9 +31,6 @@
             <text wx:if="{{item.roleLabel}}" class="group-tag">{{item.roleLabel}}</text>
           </view>
         </view>
-        <view class="group-meta">
-          {{item.memberCount}} 人
-        </view>
       </view>
     </view>
   </block>
