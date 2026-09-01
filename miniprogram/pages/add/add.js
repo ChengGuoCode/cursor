@@ -9,6 +9,7 @@ const {
   getCachedAccounts
 } = require('../../utils/config-store')
 const { BILL_TYPE, normalizeBillType } = require('../../utils/bill-map')
+const { GROUP_STATUS, pickActiveGroups } = require('../../utils/group-map')
 
 Page({
   data: {
@@ -74,16 +75,33 @@ Page({
     if (!isLoggedIn()) {
       this.setData({
         groups: [],
-        groupNames: ['不计入群组']
+        groupNames: ['不计入群组'],
+        groupIndex: 0
       })
       return
     }
     try {
       const { list } = await getGroups()
-      const groups = list || []
+      // 记账可选群：仅 status=1 生效群
+      const { activeList, newest } = pickActiveGroups(list || [])
+      const groups = activeList.length
+        ? activeList
+        : (list || []).filter((g) => Number(g.status) === GROUP_STATUS.NORMAL)
+
+      let groupIndex = 0
+      const preferredId = getApp().globalData.currentGroupId
+      if (preferredId != null && preferredId !== '') {
+        const idx = groups.findIndex((g) => String(g.groupId) === String(preferredId))
+        if (idx >= 0) groupIndex = idx + 1 // +1：前面有「不计入群组」
+      } else if (newest) {
+        const idx = groups.findIndex((g) => String(g.groupId) === String(newest.groupId))
+        if (idx >= 0) groupIndex = idx + 1
+      }
+
       this.setData({
         groups,
-        groupNames: ['不计入群组', ...groups.map((g) => g.groupName)]
+        groupNames: ['不计入群组', ...groups.map((g) => g.groupName)],
+        groupIndex
       })
     } catch (err) {
       console.warn(err)
@@ -161,20 +179,23 @@ Page({
       return
     }
 
+    // groupIndex 0 = 个人（不传 groupId）；>0 = 选中群组
     const group =
       this.data.groupIndex > 0 ? this.data.groups[this.data.groupIndex - 1] : null
 
     this.setData({ submitting: true })
     try {
-      await createBill({
+      const payload = {
         billType: this.data.billType,
-        amount,
         categoryCode: this.data.categoryCode,
         accountId: account.accountId,
-        remark: this.data.remark,
-        groupId: group ? group.groupId : null,
-        billDate: this.data.date
-      })
+        amount,
+        remark: this.data.remark
+      }
+      if (group && group.groupId != null && group.groupId !== '') {
+        payload.groupId = group.groupId
+      }
+      await createBill(payload)
       wx.showToast({ title: '已保存', icon: 'success' })
       const categories = categoriesByBillType(this.data.billType)
       this.setData({
