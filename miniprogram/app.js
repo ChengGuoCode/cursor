@@ -11,6 +11,8 @@ App({
     scopePreferPersonal: false,
     /** 群组模式下当前选中的群组 id */
     currentGroupId: null,
+    /** 详情页缓存：update / updateMemberName / review 返回的 GroupDTO，回详情时优先回填 */
+    groupDetailCache: null,
     // 切换为 false 并配置 apiBaseUrl 后走真实后端
     useMock: false,
     apiBaseUrl: 'http://127.0.0.1:9095'
