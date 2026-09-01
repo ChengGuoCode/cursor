@@ -77,6 +77,21 @@ function normalizeGroup(dto) {
     ? dto.groupMembers.map(normalizeMember).filter(Boolean)
     : []
   const activeMembers = members.filter((m) => Number(m.status) === MEMBER_STATUS.NORMAL)
+  const status = dto.status != null ? Number(dto.status) : GROUP_STATUS.NORMAL
+
+  // 有成员列表时按在群人数统计；否则用后端 memberCount；
+  // 正常群至少算上创建者自己（list 常不带 groupMembers，新建后易显示 0 人）
+  let memberCount
+  if (members.length > 0) {
+    memberCount = activeMembers.length
+  } else if (dto.memberCount != null && dto.memberCount !== '' && Number(dto.memberCount) > 0) {
+    memberCount = Number(dto.memberCount)
+  } else if (status === GROUP_STATUS.DISSOLVED) {
+    memberCount = 0
+  } else {
+    memberCount = 1
+  }
+
   return {
     ...dto,
     groupId,
@@ -85,9 +100,9 @@ function normalizeGroup(dto) {
     name: groupName,
     ownerUserId: dto.ownerUserId,
     inviteCode: dto.inviteCode || '',
-    status: dto.status != null ? Number(dto.status) : GROUP_STATUS.NORMAL,
+    status,
     groupMembers: members,
-    memberCount: activeMembers.length || members.length || dto.memberCount || 0
+    memberCount
   }
 }
 
