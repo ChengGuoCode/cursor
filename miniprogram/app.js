@@ -5,7 +5,14 @@ const { shouldUseMock } = require('./utils/request')
 App({
   globalData: {
     userInfo: null,
+    /** 账单/概览作用域：1=个人，2=群组（与后端 ScopeType 一致） */
+    scopeType: 1,
+    /** 用户是否主动切到个人（有群组时默认群组，此标记为 true 则保持个人） */
+    scopePreferPersonal: false,
+    /** 群组模式下当前选中的群组 id */
     currentGroupId: null,
+    /** 详情页缓存：update / updateMemberName / review 返回的 GroupDTO，回详情时优先回填 */
+    groupDetailCache: null,
     // 切换为 false 并配置 apiBaseUrl 后走真实后端
     useMock: false,
     apiBaseUrl: 'http://127.0.0.1:9095'
@@ -13,6 +20,13 @@ App({
 
   onLaunch() {
     this.bootstrapUser()
+    // 预拉类目/账户枚举（失败不影响启动）
+    try {
+      const { loadConfig } = require('./utils/config-store')
+      loadConfig().catch(() => {})
+    } catch (e) {
+      /* ignore */
+    }
   },
 
   /**
@@ -33,7 +47,7 @@ App({
     }
 
     try {
-      const user = await getProfile({ skipAuthRedirect: true })
+      const user = await getProfile()
       this.globalData.userInfo = user
     } catch (err) {
       clearSession()

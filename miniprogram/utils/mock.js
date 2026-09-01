@@ -59,7 +59,7 @@ const mockBills = [
     categoryId: 'shopping',
     accountId: 'alipay',
     remark: '日用品',
-    groupId: 'g1',
+    groupId: 1,
     occurredAt: daysAgo(2),
     createdBy: 'u_1001'
   },
@@ -70,7 +70,7 @@ const mockBills = [
     categoryId: 'entertainment',
     accountId: 'wechat',
     remark: '电影票',
-    groupId: 'g1',
+    groupId: 1,
     occurredAt: daysAgo(3),
     createdBy: 'u_1002'
   },
@@ -100,7 +100,7 @@ const mockBills = [
 
 const mockGroups = [
   {
-    id: 'g1',
+    id: 1,
     name: '合租小家',
     coverColor: '#1F6B4F',
     memberCount: 3,
@@ -110,7 +110,7 @@ const mockGroups = [
     updatedAt: daysAgo(1)
   },
   {
-    id: 'g2',
+    id: 2,
     name: '周末出游',
     coverColor: '#2F6F8F',
     memberCount: 5,
@@ -129,8 +129,10 @@ function buildLast7DaysTrend(bills = []) {
   const weekdays = ['日', '一', '二', '三', '四', '五', '六']
   const expenseByDate = {}
   bills.forEach((bill) => {
-    if (bill.type !== 'expense') return
-    const key = formatDate(bill.occurredAt || bill.date, 'YYYY-MM-DD')
+    const isExpense =
+      bill.billType === 2 || bill.type === 'expense' || (!bill.billType && bill.type !== 'income')
+    if (!isExpense) return
+    const key = formatDate(bill.occurredAt || bill.billDate || bill.date, 'YYYY-MM-DD')
     expenseByDate[key] = (expenseByDate[key] || 0) + Number(bill.amount || 0)
   })
 

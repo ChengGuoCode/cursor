@@ -1,9 +1,27 @@
-const { getGroups, createGroup, joinGroup } = require('../../api/group')
-const { formatMoney } = require('../../utils/format')
+const { getGroups } = require('../../api/group')
+const { isLoggedIn, requireLogin } = require('../../utils/auth')
+const { toastError } = require('../../utils/request')
+const {
+  roleTypeLabel,
+  GROUP_STATUS,
+  toCreateTimeMs
+} = require('../../utils/group-map')
+const { getActiveSelectedGroupId } = require('../../utils/scope-store')
+
+/** status=1，按 createTime 倒序 */
+function prepareGroupList(list = []) {
+  return (list || [])
+    .filter((g) => Number(g.status) === GROUP_STATUS.NORMAL)
+    .slice()
+    .sort((a, b) => toCreateTimeMs(b.createTime) - toCreateTimeMs(a.createTime))
+}
 
 Page({
   data: {
-    groups: []
+    groups: [],
+    guestMode: false,
+    /** 全局选中群（仅群组 scope 下有值，用于「当前」标签） */
+    currentGroupId: null
   },
 
   onShow() {
@@ -14,72 +32,60 @@ Page({
   },
 
   async loadGroups() {
+    if (!isLoggedIn()) {
+      this.setData({ groups: [], guestMode: true, currentGroupId: null })
+      return
+    }
+
     wx.showNavigationBarLoading()
     try {
       const { list } = await getGroups()
+      const groups = prepareGroupList(list || [])
+      // 与概览/账单/记账联动：仅群组模式下展示「当前」
+      const currentGroupId = getActiveSelectedGroupId()
+
       this.setData({
-        groups: (list || []).map((g) => ({
+        guestMode: false,
+        currentGroupId,
+        groups: groups.map((g) => ({
           ...g,
-          monthExpenseText: formatMoney(g.monthExpense),
-          balanceText: formatMoney(g.myBalance, { withSign: true })
+          roleLabel: g.roleType != null ? roleTypeLabel(g.roleType) : '',
+          isCurrent:
+            currentGroupId != null && String(g.groupId) === String(currentGroupId)
         }))
       })
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      if (err && err.code === 401) {
+        this.setData({ groups: [], guestMode: true, currentGroupId: null })
+      } else {
+        toastError(err, '加载失败')
+      }
     } finally {
       wx.hideNavigationBarLoading()
     }
   },
 
-  onCreate() {
-    wx.showModal({
-      title: '新建群组',
-      editable: true,
-      placeholderText: '例如：合租小家',
-      success: async (res) => {
-        if (!res.confirm) return
-        const name = (res.content || '').trim()
-        if (!name) {
-          wx.showToast({ title: '请输入名称', icon: 'none' })
-          return
-        }
-        try {
-          await createGroup({ name })
-          wx.showToast({ title: '已创建', icon: 'success' })
-          this.loadGroups()
-        } catch (err) {
-          wx.showToast({ title: err.message || '创建失败', icon: 'none' })
-        }
-      }
-    })
+  openCreate() {
+    if (!requireLogin('新建群组前请先登录')) return
+    wx.navigateTo({ url: '/pages/group-create/group-create' })
   },
 
-  onJoin() {
-    wx.showModal({
-      title: '加入群组',
-      editable: true,
-      placeholderText: '输入邀请码',
-      success: async (res) => {
-        if (!res.confirm) return
-        const inviteCode = (res.content || '').trim()
-        if (!inviteCode) {
-          wx.showToast({ title: '请输入邀请码', icon: 'none' })
-          return
-        }
-        try {
-          await joinGroup(inviteCode)
-          wx.showToast({ title: '已申请加入', icon: 'success' })
-          this.loadGroups()
-        } catch (err) {
-          wx.showToast({ title: err.message || '加入失败', icon: 'none' })
-        }
-      }
-    })
+  openApply() {
+    if (!requireLogin('申请加入前请先登录')) return
+    wx.navigateTo({ url: '/pages/group-join/group-join' })
   },
 
   goDetail(e) {
+    const groupId = e.currentTarget.dataset.id
+    if (groupId == null) return
+    // 进详情不改动全局选中群（「当前」由概览/账单/记账选择驱动）
     wx.navigateTo({
-      url: `/pages/group-detail/group-detail?id=${e.currentTarget.dataset.id}`
+      url: `/pages/group-detail/group-detail?groupId=${groupId}`
     })
+  },
+
+  goApplyList() {
+    if (!requireLogin('查看申请前请先登录')) return
+    wx.navigateTo({ url: '/pages/group-apply/group-apply' })
   }
 })

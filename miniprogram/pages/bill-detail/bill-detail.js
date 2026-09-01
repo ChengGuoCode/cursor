@@ -1,7 +1,8 @@
 const { getBillDetail, deleteBill } = require('../../api/bill')
-const { getGroups } = require('../../api/group')
+const { toastError } = require('../../utils/request')
 const { formatMoney, formatDate } = require('../../utils/format')
-const { getCategoryById, ACCOUNT_TYPES } = require('../../utils/constants')
+const { requireLogin } = require('../../utils/auth')
+const { loadConfig, findCategory } = require('../../utils/config-store')
 
 Page({
   data: {
@@ -18,39 +19,36 @@ Page({
     if (!this.data.id) return
     wx.showLoading({ title: '加载中' })
     try {
-      const bill = await getBillDetail(this.data.id)
-      const cat = getCategoryById(bill.categoryId)
-      const account = ACCOUNT_TYPES.find((a) => a.id === bill.accountId)
-      let groupName = ''
-      if (bill.groupId) {
-        try {
-          const { list } = await getGroups()
-          const g = (list || []).find((item) => item.id === bill.groupId)
-          groupName = g ? g.name : ''
-        } catch (e) {
-          /* ignore */
-        }
+      try {
+        await loadConfig()
+      } catch (e) {
+        /* ignore */
       }
+      const bill = await getBillDetail(this.data.id)
+      const cat = findCategory(bill.categoryCode)
       this.setData({
         bill: {
           ...bill,
           icon: cat.icon,
           color: cat.color,
           categoryName: cat.name,
-          accountName: account ? account.name : bill.accountId || '-',
-          groupName,
-          timeText: formatDate(bill.occurredAt, 'YYYY-MM-DD HH:mm'),
-          amountText: formatMoney(bill.amount, { withSign: true, type: bill.type })
+          timeText: formatDate(bill.billDate || bill.occurredAt, 'YYYY-MM-DD'),
+          amountText: formatMoney(bill.amount, {
+            withSign: true,
+            billType: bill.billType
+          })
         }
       })
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+      toastError(err, '加载失败')
     } finally {
       wx.hideLoading()
     }
   },
 
   onDelete() {
+    if (!requireLogin('删除账单前请先登录')) return
+
     wx.showModal({
       title: '删除账单',
       content: '删除后不可恢复，确认删除？',
@@ -62,7 +60,7 @@ Page({
           wx.showToast({ title: '已删除', icon: 'success' })
           setTimeout(() => wx.navigateBack(), 400)
         } catch (err) {
-          wx.showToast({ title: err.message || '删除失败', icon: 'none' })
+          toastError(err, '删除失败')
         }
       }
     })

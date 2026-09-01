@@ -1,6 +1,9 @@
 <view class="page profile-page">
   <view class="profile-hero soft-panel">
-    <view class="avatar">{{avatarText}}</view>
+    <view class="avatar">
+      <image wx:if="{{avatarUrl}}" class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
+      <text wx:else>{{avatarText}}</text>
+    </view>
     <view class="profile-info">
       <view class="nickname">{{user.nickname || '未登录'}}</view>
       <view class="motto">{{user.motto || '登录后同步账单与群组'}}</view>

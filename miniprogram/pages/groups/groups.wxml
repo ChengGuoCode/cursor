@@ -1,44 +1,48 @@
 <view class="page groups-page">
   <view class="head">
     <view>
-      <view class="page-title">一起算清楚</view>
-      <view class="page-subtitle">合租、出游、聚餐的共同开销</view>
+      <view class="page-title">群组</view>
+      <view class="page-subtitle">家庭、合租、出游、聚餐一起记账</view>
     </view>
     <view class="head-actions">
-      <view class="btn-ghost mini" bindtap="onJoin">加入</view>
-      <view class="btn-primary mini" bindtap="onCreate">新建</view>
+      <view class="btn-ghost mini" bindtap="openApply">申请加入</view>
+      <view class="btn-primary mini" bindtap="openCreate">新建</view>
     </view>
+  </view>
+
+  <view class="link-row" wx:if="{{!guestMode}}" bindtap="goApplyList">
+    <text>入群申请</text>
+    <text class="link-arrow">查看 ›</text>
   </view>
 
   <block wx:if="{{groups.length}}">
     <view
-      class="group-card"
+      class="group-card {{item.isCurrent ? 'is-current' : ''}}"
       wx:for="{{groups}}"
-      wx:key="id"
-      style="--cover: {{item.coverColor}};"
-      data-id="{{item.id}}"
+      wx:key="groupId"
+      data-id="{{item.groupId}}"
       bindtap="goDetail"
     >
-      <view class="group-cover"></view>
       <view class="group-body">
         <view class="group-top">
-          <text class="group-name">{{item.name}}</text>
-          <text class="group-role">{{item.role === 'owner' ? '创建者' : '成员'}}</text>
-        </view>
-        <view class="group-meta">{{item.memberCount}} 人 · 本月支出 ¥{{item.monthExpenseText}}</view>
-        <view class="group-balance">
-          <text>我的结余</text>
-          <text class="amount amount-sm {{item.myBalance >= 0 ? 'amount-income' : 'amount-expense'}}">
-            {{item.balanceText}}
-          </text>
+          <text class="group-name">{{item.groupName}}</text>
+          <view class="tag-row">
+            <text wx:if="{{item.isCurrent}}" class="group-tag current">当前</text>
+            <text wx:if="{{item.roleLabel}}" class="group-tag">{{item.roleLabel}}</text>
+          </view>
         </view>
       </view>
     </view>
   </block>
 
+  <view wx:elif="{{guestMode}}" class="empty-wrap soft-panel">
+    <view>登录后可查看群组</view>
+    <view class="page-subtitle">浏览无需登录；新建或申请时会引导登录</view>
+  </view>
+
   <view wx:else class="empty-wrap soft-panel">
     <view>还没有群组</view>
-    <view class="page-subtitle">创建一个，邀请室友或朋友一起记账</view>
-    <button class="btn-primary empty-btn" bindtap="onCreate">新建群组</button>
+    <view class="page-subtitle">创建一个，或用邀请码申请加入</view>
+    <button class="btn-primary empty-btn" bindtap="openCreate">新建群组</button>
   </view>
 </view>

@@ -2,16 +2,15 @@
   <view class="soft-panel hero">
     <view class="icon" style="background: {{bill.color}}22;">{{bill.icon}}</view>
     <view class="cat">{{bill.categoryName}}</view>
-    <view class="amount amount-lg {{bill.type === 'income' ? 'amount-income' : 'amount-expense'}}">
+    <view class="amount amount-lg {{bill.billType === 1 ? 'amount-income' : 'amount-expense'}}">
       {{bill.amountText}}
     </view>
-    <view class="type-tag">{{bill.type === 'income' ? '收入' : '支出'}}</view>
+    <view class="type-tag">{{bill.billType === 1 ? '收入' : '支出'}}</view>
   </view>
 
   <view class="soft-panel info-panel">
     <view class="row"><text>时间</text><text>{{bill.timeText}}</text></view>
     <view class="row"><text>账户</text><text>{{bill.accountName}}</text></view>
-    <view class="row" wx:if="{{bill.groupId}}"><text>群组</text><text>{{bill.groupName || bill.groupId}}</text></view>
     <view class="row"><text>备注</text><text>{{bill.remark || '无'}}</text></view>
   </view>
 

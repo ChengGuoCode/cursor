@@ -30,13 +30,14 @@ function isLoggedIn() {
 }
 
 /**
- * 兼容多种后端登录返回结构，统一为 { token, user }
- * 支持：
- * - { token, user }
- * - { accessToken, userInfo }
- * - { token, ...用户字段 }
+ * 兼容后端 ResDTO 及多种登录 data：
+ * - data 为 string → 即 token（当前后端 login 约定）
+ * - data 为 { token, user } / { accessToken, userInfo } 等
  */
 function normalizeLoginResult(raw) {
+  if (typeof raw === 'string' && raw) {
+    return { token: raw, user: null }
+  }
   if (!raw || typeof raw !== 'object') {
     return { token: '', user: null }
   }
@@ -48,20 +49,39 @@ function normalizeLoginResult(raw) {
   if (!user) {
     const { token: _t, accessToken, access_token, jwt, ...rest } = raw
     if (rest.id || rest.userId || rest.nickname || rest.nickName) {
-      user = {
-        id: rest.id || rest.userId,
-        nickname: rest.nickname || rest.nickName || '',
-        avatarUrl: rest.avatarUrl || rest.avatar || '',
-        phoneMask: rest.phoneMask || rest.phone || '',
-        ...rest
-      }
+      user = normalizeUser(rest)
     }
+  } else {
+    user = normalizeUser(user)
   }
 
   return { token, user }
 }
 
-/** 登录成功后写入 token，并同步 globalData.userInfo */
+/** 统一用户资料字段（昵称、头像等） */
+function normalizeUser(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const nickname = raw.nickname || raw.nickName || raw.name || ''
+  // 业务用户 ID 优先 userId（与群成员 ownerUserId/userId 对齐）
+  // 避免 raw.id 实为 openid 时盖住数字 userId，导致群组权限匹配失败
+  const businessId =
+    raw.userId != null && raw.userId !== ''
+      ? raw.userId
+      : raw.id != null && raw.id !== ''
+        ? raw.id
+        : raw.openid || raw.openId || ''
+  return {
+    ...raw,
+    id: businessId,
+    userId: raw.userId != null && raw.userId !== '' ? raw.userId : businessId,
+    nickname,
+    avatarUrl: raw.avatarUrl || raw.avatar || raw.headImgUrl || '',
+    phoneMask: raw.phoneMask || raw.phone || raw.mobile || '',
+    motto: raw.motto || ''
+  }
+}
+
+/** 登录成功后写入 token；若同时带了 user 则同步到 globalData */
 function applyLoginSession(raw) {
   const { token, user } = normalizeLoginResult(raw)
   if (!token) {
@@ -76,11 +96,39 @@ function applyLoginSession(raw) {
 let unauthorizedLock = false
 
 /**
- * 401 / 登录失效：清会话，提示并跳转「我的」重新登录。
- * 并发请求只处理一次，避免连弹 toast。
+ * 用户主动操作前校验登录。
+ * 未登录：提示并跳转「我的」，返回 false；已登录返回 true。
+ * 浏览类页面不要调用此方法。
  */
-function handleUnauthorized(message) {
+function requireLogin(tip) {
+  if (isLoggedIn()) return true
+  const title = tip || '请先登录'
+  if (unauthorizedLock) return false
+  unauthorizedLock = true
+  wx.showToast({ title, icon: 'none', duration: 1800 })
+  setTimeout(() => {
+    unauthorizedLock = false
+    try {
+      const pages = getCurrentPages()
+      const cur = pages[pages.length - 1]
+      if (!cur || cur.route !== 'pages/profile/profile') {
+        wx.switchTab({ url: '/pages/profile/profile' })
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }, 400)
+  return false
+}
+
+/**
+ * 鉴权失效：默认只清会话，不跳转（避免浏览列表时被强推登录）。
+ * 写操作可传 { redirect: true }，在用户主动操作失败时再引导登录。
+ */
+function handleUnauthorized(message, options = {}) {
+  const { redirect = false } = options
   clearSession()
+  if (!redirect) return
   if (unauthorizedLock) return
   unauthorizedLock = true
 
@@ -106,6 +154,8 @@ module.exports = {
   setToken,
   clearSession,
   isLoggedIn,
+  requireLogin,
+  normalizeUser,
   normalizeLoginResult,
   applyLoginSession,
   handleUnauthorized

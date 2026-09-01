@@ -1,3 +1,130 @@
+.scope-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  gap: 16rpx;
+}
+
+.scope-left {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  min-width: 0;
+}
+
+.scope-title {
+  font-size: 36rpx;
+  font-weight: 650;
+  color: var(--color-brand);
+}
+
+.group-picker {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(11, 61, 46, 0.06);
+}
+
+.swap-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(11, 61, 46, 0.08);
+  color: var(--color-brand);
+  flex-shrink: 0;
+}
+
+.swap-btn.disabled {
+  opacity: 0.38;
+  color: var(--color-text-muted);
+  background: rgba(11, 61, 46, 0.04);
+}
+
+.swap-btn-hover {
+  opacity: 0.75;
+}
+
+.swap-icon {
+  font-size: 30rpx;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.swap-text {
+  font-size: 22rpx;
+}
+
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.filter-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.filter-toggle {
+  margin-top: 8rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-toggle-text {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+
+.filter-arrow {
+  font-size: 28rpx;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+.filter-arrow.open {
+  transform: rotate(180deg);
+}
+
+.filter-extra {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.2s ease;
+}
+
+.filter-extra.open {
+  max-height: 240rpx;
+  opacity: 1;
+  margin-top: 8rpx;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72rpx;
+}
+
+.filter-label {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+.filter-value {
+  font-size: 26rpx;
+  color: var(--color-text);
+}
+
 .filter-bar {
   display: flex;
   flex-direction: column;

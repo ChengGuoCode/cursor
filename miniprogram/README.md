@@ -45,33 +45,74 @@
    - `api/user.js` — 登录 / 资料
    - `api/bill.js` — 概览 / 账单 CRUD
    - `api/group.js` — 群组 / 结算
-3. 统一请求封装：`utils/request.js`（Bearer Token、`{ code, data, message }` 约定）。
-4. 登录会话：`utils/auth.js`（token 落盘 / 清理 / 401 引导）。
+3. 统一请求封装：`utils/request.js`（Bearer Token、ResDTO、全局 401/500 异常捕获）。
+4. 登录会话：`utils/auth.js`（token 落盘 / 清理 / 401 跳转登录）。
+
+### 异常处理（对齐 GlobalExceptionHandler）
+
+- HTTP **401**（`FfAuthException`）：清会话，toast 后跳转「我的」登录
+- HTTP **500**：toast 展示后端 `ex.getMessage()`，约 2.8s 后自动消失
+- ResDTO `code !== 0`：同样 toast `msg`；页面 `catch` 用 `toastError` 避免重复提示
 
 ### 登录闭环
 
-1. 「我的」点登录 → `wx.login` 取 `code` → `POST /api/auth/wx-login`
-2. 成功后将 `token` 写入 Storage，后续请求自动带 `Authorization: Bearer …`
-3. 若登录响应只有 token，再请求 `GET /api/user/profile` 补全资料
-4. 启动时若有 token，静默拉资料；失效则清会话
-5. 业务请求 HTTP/业务码 401：清会话、提示，并跳转「我的」重新登录
-6. 退出：调 logout（失败也清本地），清空 `globalData.userInfo`
+对接后端 `ResDTO<T>`：`{ code, msg, data }`，`code === 0` 成功，失败用 `msg` 提示。
 
-登录接口建议返回：`{ token, user }`（也兼容 `accessToken` / `userInfo`）。
+1. 「我的」点登录 → `wx.login` 取 `code` → `GET /api/user/login?code=`
+2. 登录成功：`data` 为 **token 字符串** → 写入 Storage
+3. 再请求 `GET /api/user/profile` 拉取用户信息，填充头像 / 昵称
+4. 登录失败（`code !== 0`）：toast 展示 `msg`，保持未登录（不写 token）
+5. **浏览**（概览/账单/群组）：未登录不请求，不跳转登录
+6. **主动写操作**：`requireLogin()` 未登录才跳「我的」
+7. 退出：清本地会话
+
+登录接口约定：`ResDTO.ok(token)` → `{ code: 0, msg: "success", data: "<jwt>" }`。
+
+### 账单列表约定
+
+- 请求：`POST /api/bill/page`，body 为 `PageReqDTO<BillReqDTO>`
+- 响应：`ResDTO<PageResDTO<BillResDTO>>`，列表字段为 `records`
+- `billType`：展示「全部/收入/支出」，提交与存储为 `null/1/2`（1收入，2支出；全部为 null）
+- `scopeType`：与后端枚举一致，`1=个人`，`2=群组`（对应 PERSONAL / GROUP）；UI 只用中文「个人/群组」，不用 personal/group 字符串
+- 筛选账户用 `accountId`；展示可用返回的 `accountName`
+- `scopeType=1`：不传 `groupId`；`scopeType=2`：传用户所属某个群组的 `groupId`
+- **已加入群组时**：概览/账单默认 `scopeType=2`（群组）；用户手动切个人后本会话保持个人；无群组则回落个人
+- 无所属群组时，切换按钮置灰（不可切到群组）
+- 枚举：`GET /config/category`、`GET /config/account`
+- 账单页常用筛选（月/收支）常显；账户/类目收在「更多筛选」折叠区
+- **记账创建** body 对齐 `TransactionReqDTO`：`billType`、`categoryCode`、`accountId`、`amount`、`remark`；选中群组时传 `groupId`，**不传 `scopeType`**
+
+### 群组约定
+
+对接 `GroupController`（`/api/group`）：
+
+- `POST /create`：创建（`groupName`，可选 `memberName`）
+- `POST /update`：群主更新（改名、解散 `status=0`、转让 `ownerUserId`、刷新邀请码、成员升降/移除）
+- `GET /list`：我加入的群组
+- `GET /select`：当前群组（含 `groupMembers`）
+- `GET /listApply`：入群申请（可选 `groupId`、`applyStatus`：0待审核 / 1通过 / 2拒绝 / 3取消）
+- `POST /apply`：邀请码申请；`POST /cancelApply`：取消；`POST /review`：审核
+- `POST /updateMemberName`：改群昵称（`groupId`、`memberName`）；`POST /exit`：退出（`groupId`）
+- `roleType`：`1群主 / 2管理员 / 3成员`；成员与群组 `status`：`1正常 / 0退出或解散`
 
 ### 预留接口一览
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| POST | `/api/auth/wx-login` | code 换 token |
+| GET | `/api/user/login` | code 换 token |
 | GET/PUT | `/api/user/profile` | 用户资料 |
-| GET | `/api/overview` | 仪表盘 |
-| GET/POST | `/api/bills` | 列表 / 创建 |
-| GET/PUT/DELETE | `/api/bills/:id` | 详情 / 更新 / 删除 |
-| GET/POST | `/api/groups` | 群组列表 / 创建 |
-| GET | `/api/groups/:id` | 群组详情 |
-| POST | `/api/groups/join` | 邀请码加入 |
-| GET | `/api/groups/:id/settlement` | 结算建议 |
+| GET | `/api/bill/overview?scopeType=&groupId=&periodType=&month=` | 仪表盘（群组模式传 groupId） |
+| POST | `/api/bill/page` | 账单分页 |
+| GET | `/api/group/list` | 群组列表 |
+| GET | `/api/group/select?groupId=` | 指定群组详情 |
+| POST | `/api/group/create` | 创建群组 |
+| POST | `/api/group/update` | 更新群组 |
+| POST | `/api/group/apply` | 申请加入 |
+| GET | `/api/group/listApply?groupId=&applyStatus=` | 入群申请列表 |
+| POST | `/api/group/review` | 审核申请 |
+| POST | `/api/group/cancelApply` | 取消申请 |
+| POST | `/api/group/updateMemberName?groupId=&memberName=` | 更新群昵称 |
+| POST | `/api/group/exit?groupId=` | 退出群组 |
 
 ## 本地运行
 

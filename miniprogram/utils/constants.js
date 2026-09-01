@@ -1,4 +1,4 @@
-/** 支出分类 */
+/** 本地兜底类目（优先使用 /config/category） */
 const EXPENSE_CATEGORIES = [
   { id: 'food', name: '餐饮', icon: '🍜', color: '#C45C26' },
   { id: 'transport', name: '交通', icon: '🚇', color: '#2F6F8F' },
@@ -10,7 +10,6 @@ const EXPENSE_CATEGORIES = [
   { id: 'other_expense', name: '其他', icon: '📦', color: '#6B7280' }
 ]
 
-/** 收入分类 */
 const INCOME_CATEGORIES = [
   { id: 'salary', name: '工资', icon: '💼', color: '#1F6B4F' },
   { id: 'bonus', name: '奖金', icon: '🎁', color: '#2A7A5A' },
@@ -19,9 +18,11 @@ const INCOME_CATEGORIES = [
   { id: 'other_income', name: '其他', icon: '💰', color: '#5C8A6E' }
 ]
 
-const BILL_TYPES = [
-  { id: 'expense', name: '支出' },
-  { id: 'income', name: '收入' }
+/** billType：null=全部，1=收入，2=支出 */
+const BILL_TYPE_OPTIONS = [
+  { id: null, name: '全部' },
+  { id: 1, name: '收入' },
+  { id: 2, name: '支出' }
 ]
 
 const ACCOUNT_TYPES = [
@@ -40,10 +41,15 @@ function getCategoryById(id) {
   )
 }
 
+function getCategoryByCode(code) {
+  return getCategoryById(code)
+}
+
 module.exports = {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
-  BILL_TYPES,
+  BILL_TYPE_OPTIONS,
   ACCOUNT_TYPES,
-  getCategoryById
+  getCategoryById,
+  getCategoryByCode
 }

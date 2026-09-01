@@ -1,13 +1,13 @@
 <view class="page add-page">
   <view class="type-switch">
     <view
-      class="type-item {{type === 'expense' ? 'active expense' : ''}}"
-      data-type="expense"
+      class="type-item {{billType === 2 ? 'active expense' : ''}}"
+      data-bill-type="{{2}}"
       bindtap="onTypeChange"
     >支出</view>
     <view
-      class="type-item {{type === 'income' ? 'active income' : ''}}"
-      data-type="income"
+      class="type-item {{billType === 1 ? 'active income' : ''}}"
+      data-bill-type="{{1}}"
       bindtap="onTypeChange"
     >收入</view>
   </view>
@@ -32,10 +32,10 @@
     <view class="section-title">分类</view>
     <view class="category-grid">
       <view
-        class="category-item {{categoryId === item.id ? 'active' : ''}}"
+        class="category-item {{categoryCode === item.code ? 'active' : ''}}"
         wx:for="{{categories}}"
-        wx:key="id"
-        data-id="{{item.id}}"
+        wx:key="code"
+        data-code="{{item.code}}"
         bindtap="onCategoryPick"
       >
         <view class="category-icon" style="background: {{item.color}}22;">{{item.icon}}</view>
