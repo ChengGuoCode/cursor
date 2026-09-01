@@ -80,6 +80,7 @@
 - 无所属群组时，切换按钮置灰（不可切到群组）
 - 枚举：`GET /config/category`、`GET /config/account`
 - 账单页常用筛选（月/收支）常显；账户/类目收在「更多筛选」折叠区
+- **记账创建** body 对齐 `TransactionReqDTO`：`billType`、`categoryCode`、`accountId`、`amount`、`remark`；选中群组时传 `groupId`，**不传 `scopeType`**
 
 ### 群组约定
 

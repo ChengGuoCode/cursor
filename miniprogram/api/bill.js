@@ -144,13 +144,22 @@ function getBillDetail(id) {
 
 /**
  * 创建账单 — POST /api/bills
- * body：billType(1/2), categoryCode, accountId, amount, remark, billDate, groupId?
+ * body 对齐 TransactionReqDTO：groupId?, billType, categoryCode, accountId, amount, remark
+ * （无 scopeType）
  */
-function createBill(payload) {
+function createBill(payload = {}) {
   const body = {
-    ...payload,
-    billType: normalizeBillType(payload.billType)
+    billType: normalizeBillType(payload.billType),
+    categoryCode: payload.categoryCode,
+    accountId: payload.accountId,
+    amount: payload.amount,
+    remark: payload.remark != null ? String(payload.remark) : ''
   }
+  // 选中群组才传 groupId；个人记账不传
+  if (payload.groupId != null && payload.groupId !== '') {
+    body.groupId = payload.groupId
+  }
+
   if (shouldUseMock()) {
     const created = {
       id: `b_${Date.now()}`,
@@ -160,7 +169,7 @@ function createBill(payload) {
       amount: body.amount,
       remark: body.remark,
       groupId: body.groupId == null ? null : body.groupId,
-      occurredAt: body.billDate || body.occurredAt || new Date().toISOString(),
+      occurredAt: new Date().toISOString(),
       createdBy: 'u_1001'
     }
     mockBills.unshift(created)
