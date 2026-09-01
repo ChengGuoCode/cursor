@@ -14,6 +14,7 @@ const {
   MEMBER_STATUS,
   GROUP_STATUS,
   APPLY_STATUS,
+  normalizeGroup,
   findMyMember,
   resolveMyRoleType,
   isOwner: checkIsOwner,
@@ -50,13 +51,75 @@ Page({
     const groupId = query.groupId || ''
     this.setData({ groupId: groupId || null })
     if (groupId) getApp().globalData.currentGroupId = groupId
+    // 进入详情：select + listApply 各一次
+    this._detailInited = false
+    this._pendingApplyFetched = false
+    this._refreshPendingOnShow = false
+    this.loadDetail({ initial: true })
   },
 
   onShow() {
-    this.loadDetail()
+    // 首次由 onLoad 拉取；返回页时优先用缓存（update/review 等写入）填充
+    if (!this._detailInited) return
+
+    const cache = getApp().globalData.groupDetailCache
+    if (cache && String(cache.groupId) === String(this.data.groupId)) {
+      this.applyGroupView(cache)
+      getApp().globalData.groupDetailCache = null
+    }
+
+    // 从「入群申请」返回时再刷一次待审红点
+    if (this._refreshPendingOnShow && this.data.canManage) {
+      this._refreshPendingOnShow = false
+      this.refreshPendingApplyBadge(this.data.groupId)
+    }
   },
 
-  async loadDetail() {
+  /**
+   * 用 GroupDTO（select/update/updateMemberName/review 同源结构）填充详情
+   */
+  applyGroupView(rawGroup) {
+    const group = normalizeGroup(rawGroup)
+    if (!group) {
+      this.setData({
+        group: null,
+        members: [],
+        empty: true,
+        loading: false,
+        isOwner: false,
+        canManage: false
+      })
+      return null
+    }
+
+    const uid = readUserId(getApp().globalData.userInfo)
+    const myRoleType = resolveMyRoleType(group, uid)
+    const owner = checkIsOwner(myRoleType)
+    const manage = canReview(myRoleType)
+    const members = (group.groupMembers || [])
+      .filter(isActiveMember)
+      .sort((a, b) => (a.sortNo || 0) - (b.sortNo || 0) || (a.roleType || 0) - (b.roleType || 0))
+
+    getApp().globalData.currentGroupId = group.groupId
+
+    this.setData({
+      group,
+      groupId: group.groupId,
+      members,
+      myRoleType,
+      isOwner: owner,
+      canManage: manage,
+      empty: false,
+      loading: false
+    })
+
+    if (!manage) {
+      this.setData({ hasPendingApply: false })
+    }
+    return { group, manage }
+  },
+
+  async loadDetail({ initial = false } = {}) {
     if (!isLoggedIn()) {
       this.setData({
         group: null,
@@ -73,7 +136,6 @@ Page({
     this.setData({ loading: true })
     wx.showNavigationBarLoading()
     try {
-      // 详情以 select 为准（含 groupMembers / ownerUserId），不要用 list 覆盖掉权限字段
       const groupId = this.data.groupId
       const [profile, group] = await Promise.all([
         getProfile().catch(() => null),
@@ -84,44 +146,13 @@ Page({
         getApp().globalData.userInfo = profile
       }
 
-      const uid = readUserId(profile) || readUserId(getApp().globalData.userInfo)
+      const view = this.applyGroupView(group)
+      this._detailInited = true
 
-      if (!group) {
-        this.setData({
-          group: null,
-          members: [],
-          empty: true,
-          loading: false,
-          isOwner: false,
-          canManage: false,
-          hasPendingApply: false
-        })
-        return
-      }
-
-      const myRoleType = resolveMyRoleType(group, uid)
-      const owner = checkIsOwner(myRoleType)
-      const manage = canReview(myRoleType)
-      const members = (group.groupMembers || [])
-        .filter(isActiveMember)
-        .sort((a, b) => (a.sortNo || 0) - (b.sortNo || 0) || (a.roleType || 0) - (b.roleType || 0))
-
-      getApp().globalData.currentGroupId = group.groupId
-
-      this.setData({
-        group,
-        members,
-        myRoleType,
-        isOwner: owner,
-        canManage: manage,
-        empty: false,
-        loading: false
-      })
-
-      if (manage) {
-        this.refreshPendingApplyBadge(group.groupId)
-      } else {
-        this.setData({ hasPendingApply: false })
+      // 仅从群组页进入详情时拉一次待审红点
+      if (initial && view && view.manage && !this._pendingApplyFetched) {
+        this._pendingApplyFetched = true
+        await this.refreshPendingApplyBadge(view.group.groupId)
       }
     } catch (err) {
       toastError(err, '加载失败')
@@ -151,6 +182,12 @@ Page({
     } catch (e) {
       this.setData({ hasPendingApply: false })
     }
+  },
+
+  /** update / updateMemberName 成功后用返回体刷新，不再 select */
+  applyMutationResult(updated) {
+    if (!updated) return
+    this.applyGroupView(updated)
   },
 
   copyInvite() {
@@ -194,14 +231,14 @@ Page({
       success: async (res) => {
         if (!res.confirm) return
         try {
-          await updateGroup(
+          const updated = await updateGroup(
             this.buildUpdatePayload(
               { groupName: group.groupName },
               { refreshInvite: true }
             )
           )
+          this.applyMutationResult(updated)
           wx.showToast({ title: '已刷新', icon: 'success' })
-          this.loadDetail()
         } catch (err) {
           toastError(err, '刷新失败')
         }
@@ -225,9 +262,9 @@ Page({
           return
         }
         try {
-          await updateGroup(this.buildUpdatePayload({ groupName }))
+          const updated = await updateGroup(this.buildUpdatePayload({ groupName }))
+          this.applyMutationResult(updated)
           wx.showToast({ title: '已更新', icon: 'success' })
-          this.loadDetail()
         } catch (err) {
           toastError(err, '更新失败')
         }
@@ -253,9 +290,9 @@ Page({
         try {
           const groupId =
             this.data.groupId || (this.data.group && this.data.group.groupId)
-          await updateMemberName(groupId, memberName)
+          const updated = await updateMemberName(groupId, memberName)
+          this.applyMutationResult(updated)
           wx.showToast({ title: '已更新', icon: 'success' })
-          this.loadDetail()
         } catch (err) {
           toastError(err, '更新失败')
         }
@@ -303,8 +340,9 @@ Page({
     if (!group) return
 
     try {
+      let updated = null
       if (action === 'promote') {
-        await updateGroup(
+        updated = await updateGroup(
           this.buildUpdatePayload({
             groupMembers: [
               {
@@ -317,7 +355,7 @@ Page({
           })
         )
       } else if (action === 'demote') {
-        await updateGroup(
+        updated = await updateGroup(
           this.buildUpdatePayload({
             groupMembers: [
               {
@@ -332,7 +370,7 @@ Page({
       } else if (action === 'transfer') {
         const ok = await this.confirmModal('让出群主', `确定将群主转让给「${member.memberName}」？`)
         if (!ok) return
-        await updateGroup(
+        updated = await updateGroup(
           this.buildUpdatePayload({
             ownerUserId: member.userId,
             groupMembers: [
@@ -348,7 +386,7 @@ Page({
       } else if (action === 'remove') {
         const ok = await this.confirmModal('移除成员', `确定移除「${member.memberName}」？`)
         if (!ok) return
-        await updateGroup(
+        updated = await updateGroup(
           this.buildUpdatePayload({
             groupMembers: [
               {
@@ -361,8 +399,8 @@ Page({
           })
         )
       }
+      this.applyMutationResult(updated)
       wx.showToast({ title: '已更新', icon: 'success' })
-      this.loadDetail()
     } catch (err) {
       toastError(err, '操作失败')
     }
@@ -433,6 +471,8 @@ Page({
 
   goApplyList() {
     const groupId = this.data.groupId || (this.data.group && this.data.group.groupId) || ''
+    // 从申请页返回时允许再刷一次待审红点
+    this._refreshPendingOnShow = true
     wx.navigateTo({
       url: `/pages/group-apply/group-apply?groupId=${groupId}`
     })

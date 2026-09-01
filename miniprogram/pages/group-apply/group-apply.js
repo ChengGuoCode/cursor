@@ -40,6 +40,7 @@ Page({
     const raw = query && query.groupId
     const groupId = raw != null && raw !== '' ? raw : null
     this.setData({ groupId })
+    this._roleInited = false
   },
 
   onShow() {
@@ -53,24 +54,29 @@ Page({
     }
 
     const groupId = this.data.groupId
-    let canReviewFlag = false
 
-    try {
-      if (groupId != null && groupId !== '') {
-        const group = await selectGroup(groupId).catch(() => null)
-        const role = resolveMyRoleType(group, currentUserId())
-        canReviewFlag = canReview(role)
-        if (!canReviewFlag) {
-          const mine = findMyMember(group, currentUserId())
-          canReviewFlag = !!(mine && canReview(mine.roleType))
+    // 权限只在首次进入时用 select 判定；之后 review 用返回 GroupDTO 写缓存，不再 select
+    if (!this._roleInited) {
+      let canReviewFlag = false
+      try {
+        if (groupId != null && groupId !== '') {
+          const group = await selectGroup(groupId).catch(() => null)
+          const role = resolveMyRoleType(group, currentUserId())
+          canReviewFlag = canReview(role)
+          if (!canReviewFlag) {
+            const mine = findMyMember(group, currentUserId())
+            canReviewFlag = !!(mine && canReview(mine.roleType))
+          }
+        } else {
+          canReviewFlag = true
         }
-      } else {
-        // 汇总列表：待审且非本人的条目展示审核按钮，权限由后端校验
-        canReviewFlag = true
+        this.setData({ guestMode: false, canReview: canReviewFlag })
+        this._roleInited = true
+      } catch (e) {
+        this.setData({ canReview: false })
       }
-      this.setData({ guestMode: false, canReview: canReviewFlag })
-    } catch (e) {
-      this.setData({ canReview: false })
+    } else {
+      this.setData({ guestMode: false })
     }
 
     this.loadList()
@@ -109,14 +115,22 @@ Page({
     this.loadList()
   },
 
+  /** review 返回 GroupDTO，写入缓存供详情页回填，不再 select */
+  cacheReviewedGroup(updated) {
+    if (updated && updated.groupId != null) {
+      getApp().globalData.groupDetailCache = updated
+    }
+  },
+
   async onApprove(e) {
     if (!requireLogin()) return
     const id = e.currentTarget.dataset.id
     try {
-      await reviewApply({
+      const updated = await reviewApply({
         applyId: id,
         reviewStatus: APPLY_STATUS.APPROVED
       })
+      this.cacheReviewedGroup(updated)
       wx.showToast({ title: '已通过', icon: 'success' })
       this.loadList()
     } catch (err) {
@@ -134,11 +148,12 @@ Page({
       success: async (res) => {
         if (!res.confirm) return
         try {
-          await reviewApply({
+          const updated = await reviewApply({
             applyId: id,
             reviewStatus: APPLY_STATUS.REJECTED,
             reviewRemark: (res.content || '').trim()
           })
+          this.cacheReviewedGroup(updated)
           wx.showToast({ title: '已拒绝', icon: 'success' })
           this.loadList()
         } catch (err) {
