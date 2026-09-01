@@ -1,6 +1,9 @@
 /**
  * 概览/账单 scopeType 全局偏好。
- * 规则：已加入群组时默认群组(2)；用户手动切个人则本会话记住；无群组强制个人。
+ * 规则：
+ * - 当前有加入的群组 → 默认群组(2)，使用后端当前群
+ * - 当前没有加入的群组 → 默认个人(1)
+ * - 用户手动切个人后本会话可保持个人（仍有群时）
  */
 
 const {
@@ -19,9 +22,11 @@ function getAppSafe() {
 
 /**
  * 根据群组列表同步 globalData.scopeType / currentGroupId
- * @returns {{ scopeType: number, scopeLabel: string, currentGroupId: *, groupIndex: number }}
+ * @param {Array} groupList
+ * @param {{ currentGroupId?: * }} [options]
+ * @returns {{ scopeType: number, scopeLabel: string, currentGroupId: *, groupIndex: number, currentGroupName: string }}
  */
-function applyScopePreference(groupList = []) {
+function applyScopePreference(groupList = [], options = {}) {
   const app = getAppSafe()
   const list = groupList || []
 
@@ -30,7 +35,8 @@ function applyScopePreference(groupList = []) {
       scopeType: SCOPE_TYPE.PERSONAL,
       scopeLabel: '个人',
       currentGroupId: null,
-      groupIndex: 0
+      groupIndex: 0,
+      currentGroupName: ''
     }
   }
 
@@ -42,15 +48,20 @@ function applyScopePreference(groupList = []) {
       scopeType: SCOPE_TYPE.PERSONAL,
       scopeLabel: scopeTypeLabel(SCOPE_TYPE.PERSONAL),
       currentGroupId: null,
-      groupIndex: 0
+      groupIndex: 0,
+      currentGroupName: ''
     }
   }
 
-  // 已加入群组：默认群组；仅当用户主动切过个人时保持个人
+  // 有群组：默认群组；仅当用户主动切过个人时保持个人
   if (!app.globalData.scopePreferPersonal) {
     app.globalData.scopeType = SCOPE_TYPE.GROUP
   } else {
     app.globalData.scopeType = SCOPE_TYPE.PERSONAL
+  }
+
+  if (options.currentGroupId != null && options.currentGroupId !== '') {
+    app.globalData.currentGroupId = options.currentGroupId
   }
 
   let currentGroupId = app.globalData.currentGroupId
@@ -61,13 +72,45 @@ function applyScopePreference(groupList = []) {
   }
   app.globalData.currentGroupId = currentGroupId
 
+  const currentGroup = list[groupIndex] || list[0]
   const scopeType = normalizeScopeType(app.globalData.scopeType)
   return {
     scopeType,
     scopeLabel: scopeTypeLabel(scopeType),
     currentGroupId,
-    groupIndex
+    groupIndex,
+    currentGroupName: (currentGroup && currentGroup.groupName) || ''
   }
+}
+
+/**
+ * 退出/解散群组后重新同步：无群→个人；仍有群→默认当前群
+ */
+async function syncScopeAfterGroupChange() {
+  const app = getAppSafe()
+  // 群组成员关系变化后按默认规则重算，不沿用「手动切个人」偏好
+  if (app) {
+    app.globalData.scopePreferPersonal = false
+  }
+
+  const { getGroups, selectGroup } = require('../api/group')
+  const { list } = await getGroups()
+  let currentGroupId = null
+  let currentGroupName = ''
+
+  if (list && list.length) {
+    const current = await selectGroup().catch(() => null)
+    if (current && current.groupId != null) {
+      currentGroupId = current.groupId
+      currentGroupName = current.groupName || ''
+    }
+  }
+
+  const scope = applyScopePreference(list || [], { currentGroupId })
+  if (currentGroupName) {
+    scope.currentGroupName = currentGroupName
+  }
+  return scope
 }
 
 /**
@@ -99,6 +142,7 @@ function preferGroupScopeAfterJoin(groupId) {
 
 module.exports = {
   applyScopePreference,
+  syncScopeAfterGroupChange,
   setGlobalScopeType,
   preferGroupScopeAfterJoin
 }

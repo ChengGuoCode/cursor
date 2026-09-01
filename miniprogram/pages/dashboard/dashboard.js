@@ -1,6 +1,6 @@
 const { getOverview } = require('../../api/bill')
 const { toastError } = require('../../utils/request')
-const { getGroups } = require('../../api/group')
+const { getGroups, selectGroup } = require('../../api/group')
 const { formatMoney, formatMonthLabel } = require('../../utils/format')
 const { isLoggedIn } = require('../../utils/auth')
 const { loadConfig, findCategory } = require('../../utils/config-store')
@@ -64,9 +64,8 @@ Page({
     periodType: 1,
     scopeLabel: '个人',
     currentGroupId: null,
+    currentGroupName: '',
     groupList: [],
-    groupNames: [],
-    groupIndex: 0,
     hasGroups: false,
     swapDisabled: true
   },
@@ -89,7 +88,8 @@ Page({
       this.setData({
         ...emptyOverviewState(this.data.monthLabel),
         hasGroups: false,
-        swapDisabled: true
+        swapDisabled: true,
+        currentGroupName: ''
       })
       return
     }
@@ -104,39 +104,53 @@ Page({
 
   async refreshGroupAvailability() {
     try {
-      const { list } = await getGroups()
+      const [{ list }, current] = await Promise.all([
+        getGroups(),
+        selectGroup().catch(() => null)
+      ])
       const groupList = list || []
       const hasGroups = groupList.length > 0
-      const scope = applyScopePreference(groupList)
+      const scope = applyScopePreference(groupList, {
+        currentGroupId: current && current.groupId != null ? current.groupId : undefined
+      })
+      const currentGroupName =
+        (current && current.groupName) || scope.currentGroupName || ''
       this.setData({
         groupList,
-        groupNames: groupList.map((g) => g.groupName),
         hasGroups,
         swapDisabled: !hasGroups,
         scopeType: scope.scopeType,
         scopeLabel: scope.scopeLabel,
         currentGroupId: scope.currentGroupId,
-        groupIndex: scope.groupIndex
+        currentGroupName: scope.scopeType === SCOPE_TYPE.GROUP ? currentGroupName : ''
       })
     } catch (e) {
-      this.setData({ hasGroups: false, swapDisabled: true, groupList: [], groupNames: [] })
+      this.setData({
+        hasGroups: false,
+        swapDisabled: true,
+        groupList: [],
+        currentGroupName: ''
+      })
     }
   },
 
   async ensureGroupSelection() {
     const groupList = this.data.groupList || []
     if (!groupList.length) {
-      this.setData({ currentGroupId: null })
+      this.setData({ currentGroupId: null, currentGroupName: '' })
       return
     }
     let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
-    let groupIndex = groupList.findIndex((g) => String(g.groupId) === String(currentGroupId))
-    if (groupIndex < 0) {
-      groupIndex = 0
-      currentGroupId = groupList[0].groupId
+    let group = groupList.find((g) => String(g.groupId) === String(currentGroupId))
+    if (!group) {
+      group = groupList[0]
+      currentGroupId = group.groupId
     }
     getApp().globalData.currentGroupId = currentGroupId
-    this.setData({ groupIndex, currentGroupId })
+    this.setData({
+      currentGroupId,
+      currentGroupName: group.groupName || this.data.currentGroupName || ''
+    })
   },
 
   async loadOverview() {
@@ -232,18 +246,14 @@ Page({
     setGlobalScopeType(next, { fromUser: true })
     this.setData({
       scopeType: next,
-      scopeLabel: scopeTypeLabel(next)
+      scopeLabel: scopeTypeLabel(next),
+      currentGroupName:
+        next === SCOPE_TYPE.GROUP ? this.data.currentGroupName || '' : ''
     })
+    if (next === SCOPE_TYPE.GROUP) {
+      await this.refreshGroupAvailability()
+    }
     await this.loadOverview()
-  },
-
-  onGroupPick(e) {
-    const groupIndex = Number(e.detail.value)
-    const group = this.data.groupList[groupIndex]
-    if (!group) return
-    getApp().globalData.currentGroupId = group.groupId
-    this.setData({ groupIndex, currentGroupId: group.groupId })
-    this.loadOverview()
   },
 
   onMonthChange(e) {

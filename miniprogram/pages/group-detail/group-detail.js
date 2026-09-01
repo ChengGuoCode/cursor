@@ -7,6 +7,7 @@ const {
 const { getProfile } = require('../../api/user')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
 const { toastError } = require('../../utils/request')
+const { syncScopeAfterGroupChange } = require('../../utils/scope-store')
 const {
   ROLE_TYPE,
   MEMBER_STATUS,
@@ -343,7 +344,6 @@ Page({
 
   onDissolve() {
     if (!requireLogin() || !this.data.isOwner) return
-    const group = this.data.group
     wx.showModal({
       title: '解散群组',
       content: '解散后不可恢复，确认解散？',
@@ -356,13 +356,7 @@ Page({
               status: GROUP_STATUS.DISSOLVED
             })
           )
-          const app = getApp()
-          if (
-            app.globalData.currentGroupId != null &&
-            String(app.globalData.currentGroupId) === String(group.groupId)
-          ) {
-            app.globalData.currentGroupId = null
-          }
+          await syncScopeAfterGroupChange()
           wx.showToast({ title: '已解散', icon: 'success' })
           setTimeout(() => {
             wx.switchTab({ url: '/pages/groups/groups' })
@@ -387,8 +381,11 @@ Page({
         if (!res.confirm) return
         try {
           await exitGroup()
+          await syncScopeAfterGroupChange()
           wx.showToast({ title: '已退出', icon: 'success' })
-          setTimeout(() => wx.navigateBack(), 400)
+          setTimeout(() => {
+            wx.switchTab({ url: '/pages/groups/groups' })
+          }, 400)
         } catch (err) {
           toastError(err, '退出失败')
         }

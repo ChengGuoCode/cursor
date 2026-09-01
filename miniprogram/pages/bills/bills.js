@@ -1,6 +1,6 @@
 const { getBills } = require('../../api/bill')
 const { toastError } = require('../../utils/request')
-const { getGroups } = require('../../api/group')
+const { getGroups, selectGroup } = require('../../api/group')
 const { formatMoney, formatMonthLabel, groupBillsByDate } = require('../../utils/format')
 const { isLoggedIn } = require('../../utils/auth')
 const { loadConfig, findCategory, getCachedCategories } = require('../../utils/config-store')
@@ -133,10 +133,15 @@ Page({
 
   async refreshGroupAvailability() {
     try {
-      const { list } = await getGroups()
+      const [{ list }, current] = await Promise.all([
+        getGroups(),
+        selectGroup().catch(() => null)
+      ])
       const groupList = list || []
       const hasGroups = groupList.length > 0
-      const scope = applyScopePreference(groupList)
+      const scope = applyScopePreference(groupList, {
+        currentGroupId: current && current.groupId != null ? current.groupId : undefined
+      })
       this.setData({
         groupList,
         groupNames: groupList.map((g) => g.groupName),
