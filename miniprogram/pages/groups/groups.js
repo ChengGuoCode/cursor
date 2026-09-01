@@ -6,6 +6,7 @@ const {
   roleTypeLabel,
   GROUP_STATUS
 } = require('../../utils/group-map')
+const { applyScopePreference } = require('../../utils/scope-store')
 
 function currentUserId() {
   const user = (getApp().globalData && getApp().globalData.userInfo) || {}
@@ -39,24 +40,27 @@ Page({
         selectGroup().catch(() => null)
       ])
       const uid = currentUserId()
-      const currentGroupId = current && current.groupId != null ? current.groupId : null
-      if (currentGroupId != null) {
-        getApp().globalData.currentGroupId = currentGroupId
+      const groups = (list || []).filter((g) => Number(g.status) !== GROUP_STATUS.DISSOLVED)
+
+      // 已加入群组时，概览/账单默认切到群组
+      if (current && current.groupId != null) {
+        getApp().globalData.currentGroupId = current.groupId
       }
+      const scope = applyScopePreference(groups)
 
       this.setData({
         guestMode: false,
-        currentGroupId,
-        groups: (list || [])
-          .filter((g) => Number(g.status) !== GROUP_STATUS.DISSOLVED)
-          .map((g) => {
-            const mine = findMyMember(g, uid)
-            return {
-              ...g,
-              roleLabel: mine ? roleTypeLabel(mine.roleType) : '',
-              isCurrent: currentGroupId != null && String(g.groupId) === String(currentGroupId)
-            }
-          })
+        currentGroupId: scope.currentGroupId,
+        groups: groups.map((g) => {
+          const mine = findMyMember(g, uid)
+          return {
+            ...g,
+            roleLabel: mine ? roleTypeLabel(mine.roleType) : '',
+            isCurrent:
+              scope.currentGroupId != null &&
+              String(g.groupId) === String(scope.currentGroupId)
+          }
+        })
       })
     } catch (err) {
       if (err && err.code === 401) {

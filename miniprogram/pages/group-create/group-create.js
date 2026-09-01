@@ -1,6 +1,7 @@
 const { createGroup } = require('../../api/group')
 const { requireLogin } = require('../../utils/auth')
 const { toastError } = require('../../utils/request')
+const { preferGroupScopeAfterJoin } = require('../../utils/scope-store')
 
 Page({
   data: {
@@ -35,10 +36,11 @@ Page({
 
     this.setData({ submitting: true })
     try {
-      await createGroup({
+      const created = await createGroup({
         groupName,
         memberName: (this.data.memberName || '').trim()
       })
+      preferGroupScopeAfterJoin(created && created.groupId)
       wx.showToast({ title: '已创建', icon: 'success' })
       setTimeout(() => {
         wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/groups/groups' }) })

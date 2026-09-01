@@ -10,6 +10,10 @@ const {
   scopeTypeLabel,
   isGroupScope
 } = require('../../utils/bill-map')
+const {
+  applyScopePreference,
+  setGlobalScopeType
+} = require('../../utils/scope-store')
 
 function emptyOverviewState(monthLabel) {
   return {
@@ -103,20 +107,17 @@ Page({
       const { list } = await getGroups()
       const groupList = list || []
       const hasGroups = groupList.length > 0
+      const scope = applyScopePreference(groupList)
       this.setData({
         groupList,
         groupNames: groupList.map((g) => g.groupName),
         hasGroups,
-        swapDisabled: !hasGroups
+        swapDisabled: !hasGroups,
+        scopeType: scope.scopeType,
+        scopeLabel: scope.scopeLabel,
+        currentGroupId: scope.currentGroupId,
+        groupIndex: scope.groupIndex
       })
-      if (!hasGroups && isGroupScope(this.data.scopeType)) {
-        getApp().globalData.scopeType = SCOPE_TYPE.PERSONAL
-        this.setData({
-          scopeType: SCOPE_TYPE.PERSONAL,
-          scopeLabel: scopeTypeLabel(SCOPE_TYPE.PERSONAL),
-          currentGroupId: null
-        })
-      }
     } catch (e) {
       this.setData({ hasGroups: false, swapDisabled: true, groupList: [], groupNames: [] })
     }
@@ -228,7 +229,7 @@ Page({
     const next = isGroupScope(this.data.scopeType)
       ? SCOPE_TYPE.PERSONAL
       : SCOPE_TYPE.GROUP
-    getApp().globalData.scopeType = next
+    setGlobalScopeType(next, { fromUser: true })
     this.setData({
       scopeType: next,
       scopeLabel: scopeTypeLabel(next)

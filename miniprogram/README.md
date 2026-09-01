@@ -76,6 +76,7 @@
 - `scopeType`：与后端枚举一致，`1=个人`，`2=群组`（对应 PERSONAL / GROUP）；UI 只用中文「个人/群组」，不用 personal/group 字符串
 - 筛选账户用 `accountId`；展示可用返回的 `accountName`
 - `scopeType=1`：不传 `groupId`；`scopeType=2`：传用户所属某个群组的 `groupId`
+- **已加入群组时**：概览/账单默认 `scopeType=2`（群组）；用户手动切个人后本会话保持个人；无群组则回落个人
 - 无所属群组时，切换按钮置灰（不可切到群组）
 - 枚举：`GET /config/category`、`GET /config/account`
 - 账单页常用筛选（月/收支）常显；账户/类目收在「更多筛选」折叠区
