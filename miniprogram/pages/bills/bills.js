@@ -17,7 +17,9 @@ const {
 } = require('../../utils/bill-map')
 const {
   applyScopePreference,
-  setGlobalScopeType
+  setGlobalScopeType,
+  selectGroupScope,
+  selectPersonalScope
 } = require('../../utils/scope-store')
 
 function syncScopeFromApp(page) {
@@ -344,7 +346,13 @@ Page({
     const next = isGroupScope(this.data.scopeType)
       ? SCOPE_TYPE.PERSONAL
       : SCOPE_TYPE.GROUP
-    setGlobalScopeType(next, { fromUser: true })
+    if (next === SCOPE_TYPE.PERSONAL) {
+      selectPersonalScope({ fromUser: true })
+    } else {
+      selectGroupScope(this.data.currentGroupId || getApp().globalData.currentGroupId, {
+        fromUser: true
+      })
+    }
     this.setData({
       scopeType: next,
       scopeLabel: scopeTypeLabel(next),
@@ -358,7 +366,7 @@ Page({
     const groupIndex = Number(e.detail.value)
     const group = this.data.groupList[groupIndex]
     if (!group) return
-    getApp().globalData.currentGroupId = group.groupId
+    selectGroupScope(group.groupId, { fromUser: true })
     this.setData({ groupIndex, currentGroupId: group.groupId, pageNum: 1 })
     this.loadBills()
   },

@@ -1,72 +1,26 @@
-const { getGroups, selectGroup } = require('../../api/group')
+const { getGroups } = require('../../api/group')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
 const { toastError } = require('../../utils/request')
 const {
-  findMyMember,
   roleTypeLabel,
   GROUP_STATUS,
-  normalizeGroup,
-  pickActiveGroups
+  toCreateTimeMs
 } = require('../../utils/group-map')
-const { applyScopePreference } = require('../../utils/scope-store')
+const { getActiveSelectedGroupId } = require('../../utils/scope-store')
 
-function currentUserId() {
-  const user = (getApp().globalData && getApp().globalData.userInfo) || {}
-  return user.id || user.userId || ''
-}
-
-/**
- * list 可能不带成员；select 会返回指定群完整 groupMembers。
- * 把 select 的成员集合合并进对应列表项，人数用集合长度。
- */
-function mergeCurrentGroupMembers(groups, current) {
-  if (!current || current.groupId == null) return groups || []
-  const list = groups || []
-  const cur = normalizeGroup(current) || current
-  const members = cur.groupMembers || []
-  const idx = list.findIndex((g) => String(g.groupId) === String(cur.groupId))
-
-  if (idx < 0) {
-    return [cur, ...list]
-  }
-
-  if (!members.length && (list[idx].groupMembers || []).length) {
-    return list
-  }
-
-  const next = list.slice()
-  next[idx] = {
-    ...list[idx],
-    ...cur,
-    groupMembers: members,
-    memberCount: members.length,
-    inviteCode: cur.inviteCode || list[idx].inviteCode
-  }
-  return next
-}
-
-/** 解析用于 select 的 groupId：优先全局已选且仍在列表，否则最新生效群 */
-function resolveSelectGroupId(groups) {
-  const list = groups || []
-  if (!list.length) return null
-  const app = getApp()
-  const preferred = app.globalData && app.globalData.currentGroupId
-  if (
-    preferred != null &&
-    preferred !== '' &&
-    list.some((g) => String(g.groupId) === String(preferred))
-  ) {
-    return preferred
-  }
-  const { newest } = pickActiveGroups(list)
-  if (newest) return newest.groupId
-  return list[0].groupId
+/** status=1，按 createTime 倒序 */
+function prepareGroupList(list = []) {
+  return (list || [])
+    .filter((g) => Number(g.status) === GROUP_STATUS.NORMAL)
+    .slice()
+    .sort((a, b) => toCreateTimeMs(b.createTime) - toCreateTimeMs(a.createTime))
 }
 
 Page({
   data: {
     groups: [],
     guestMode: false,
+    /** 全局选中群（仅群组 scope 下有值，用于「当前」标签） */
     currentGroupId: null
   },
 
@@ -86,36 +40,23 @@ Page({
     wx.showNavigationBarLoading()
     try {
       const { list } = await getGroups()
-      let groups = (list || []).filter((g) => Number(g.status) !== GROUP_STATUS.DISSOLVED)
-      const selectId = resolveSelectGroupId(groups)
-      const current = selectId != null ? await selectGroup(selectId).catch(() => null) : null
-      const uid = currentUserId()
-      groups = mergeCurrentGroupMembers(groups, current)
-
-      if (current && current.groupId != null) {
-        getApp().globalData.currentGroupId = current.groupId
-      }
-      const scope = applyScopePreference(groups)
+      const groups = prepareGroupList(list || [])
+      // 与概览/账单/记账联动：仅群组模式下展示「当前」
+      const currentGroupId = getActiveSelectedGroupId()
 
       this.setData({
         guestMode: false,
-        currentGroupId: scope.currentGroupId,
-        groups: groups.map((g) => {
-          const mine = findMyMember(g, uid)
-          const memberCount = Array.isArray(g.groupMembers) ? g.groupMembers.length : 0
-          return {
-            ...g,
-            memberCount,
-            roleLabel: mine ? roleTypeLabel(mine.roleType) : '',
-            isCurrent:
-              scope.currentGroupId != null &&
-              String(g.groupId) === String(scope.currentGroupId)
-          }
-        })
+        currentGroupId,
+        groups: groups.map((g) => ({
+          ...g,
+          roleLabel: g.roleType != null ? roleTypeLabel(g.roleType) : '',
+          isCurrent:
+            currentGroupId != null && String(g.groupId) === String(currentGroupId)
+        }))
       })
     } catch (err) {
       if (err && err.code === 401) {
-        this.setData({ groups: [], guestMode: true })
+        this.setData({ groups: [], guestMode: true, currentGroupId: null })
       } else {
         toastError(err, '加载失败')
       }
@@ -137,7 +78,7 @@ Page({
   goDetail(e) {
     const groupId = e.currentTarget.dataset.id
     if (groupId == null) return
-    getApp().globalData.currentGroupId = groupId
+    // 进详情不改动全局选中群（「当前」由概览/账单/记账选择驱动）
     wx.navigateTo({
       url: `/pages/group-detail/group-detail?groupId=${groupId}`
     })
@@ -145,7 +86,6 @@ Page({
 
   goApplyList() {
     if (!requireLogin('查看申请前请先登录')) return
-    // 群组页入口：不传 groupId，由后端返回与当前用户相关的申请汇总
     wx.navigateTo({ url: '/pages/group-apply/group-apply' })
   }
 })

@@ -146,14 +146,46 @@ function setGlobalScopeType(scopeType, options = {}) {
   return next
 }
 
+/**
+ * 概览/账单/记账共用：当前选中的群组 id。
+ * 仅当全局 scope 为群组时有效；个人模式下返回 null（群组页不展示「当前」）。
+ */
+function getActiveSelectedGroupId() {
+  const app = getAppSafe()
+  if (!app) return null
+  if (normalizeScopeType(app.globalData.scopeType) !== SCOPE_TYPE.GROUP) return null
+  const id = app.globalData.currentGroupId
+  if (id == null || id === '') return null
+  return id
+}
+
+/** 选中某个群组（联动概览/账单/记账/群组页「当前」标签） */
+function selectGroupScope(groupId, options = {}) {
+  if (groupId == null || groupId === '') {
+    return setGlobalScopeType(SCOPE_TYPE.PERSONAL, { fromUser: !!options.fromUser })
+  }
+  return setGlobalScopeType(SCOPE_TYPE.GROUP, {
+    fromUser: !!options.fromUser,
+    groupId
+  })
+}
+
+/** 切到个人（群组页不再展示「当前」） */
+function selectPersonalScope(options = {}) {
+  return setGlobalScopeType(SCOPE_TYPE.PERSONAL, { fromUser: options.fromUser !== false })
+}
+
 /** 创建/加入群组成功：概览与账单默认切到群组 */
 function preferGroupScopeAfterJoin(groupId) {
-  return setGlobalScopeType(SCOPE_TYPE.GROUP, { groupId })
+  return selectGroupScope(groupId, { fromUser: false })
 }
 
 module.exports = {
   applyScopePreference,
   syncScopeAfterGroupChange,
   setGlobalScopeType,
+  getActiveSelectedGroupId,
+  selectGroupScope,
+  selectPersonalScope,
   preferGroupScopeAfterJoin
 }

@@ -50,8 +50,7 @@ Page({
   onLoad(query) {
     const groupId = query.groupId || ''
     this.setData({ groupId: groupId || null })
-    if (groupId) getApp().globalData.currentGroupId = groupId
-    // 进入详情：select + listApply 各一次
+    // 进入详情不改全局选中群（「当前」由概览/账单/记账驱动）
     this._detailInited = false
     this._pendingApplyFetched = false
     this._refreshPendingOnShow = false

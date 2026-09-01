@@ -8,8 +8,13 @@ const {
   categoriesByBillType,
   getCachedAccounts
 } = require('../../utils/config-store')
-const { BILL_TYPE, normalizeBillType } = require('../../utils/bill-map')
+const { BILL_TYPE, normalizeBillType, SCOPE_TYPE } = require('../../utils/bill-map')
 const { GROUP_STATUS, pickActiveGroups } = require('../../utils/group-map')
+const {
+  getActiveSelectedGroupId,
+  selectGroupScope,
+  selectPersonalScope
+} = require('../../utils/scope-store')
 
 Page({
   data: {
@@ -89,11 +94,11 @@ Page({
         : (list || []).filter((g) => Number(g.status) === GROUP_STATUS.NORMAL)
 
       let groupIndex = 0
-      const preferredId = getApp().globalData.currentGroupId
+      const preferredId = getActiveSelectedGroupId()
       if (preferredId != null && preferredId !== '') {
         const idx = groups.findIndex((g) => String(g.groupId) === String(preferredId))
         if (idx >= 0) groupIndex = idx + 1 // +1：前面有「不计入群组」
-      } else if (newest) {
+      } else if (newest && getApp().globalData.scopeType === SCOPE_TYPE.GROUP) {
         const idx = groups.findIndex((g) => String(g.groupId) === String(newest.groupId))
         if (idx >= 0) groupIndex = idx + 1
       }
@@ -131,7 +136,15 @@ Page({
   },
 
   onGroupChange(e) {
-    this.setData({ groupIndex: Number(e.detail.value) })
+    const groupIndex = Number(e.detail.value)
+    this.setData({ groupIndex })
+    // 与概览/账单/群组页「当前」标签联动
+    if (groupIndex <= 0) {
+      selectPersonalScope({ fromUser: true })
+    } else {
+      const group = this.data.groups[groupIndex - 1]
+      if (group) selectGroupScope(group.groupId, { fromUser: true })
+    }
   },
 
   onRemarkInput(e) {

@@ -95,6 +95,8 @@ function normalizeGroup(dto) {
     inviteCode: dto.inviteCode || '',
     status: dto.status != null ? Number(dto.status) : GROUP_STATUS.NORMAL,
     createTime: dto.createTime != null ? dto.createTime : dto.createdAt || null,
+    /** list 接口直接返回当前用户在该群的角色 */
+    roleType: dto.roleType != null && dto.roleType !== '' ? Number(dto.roleType) : null,
     groupMembers: members,
     memberCount: rawMembers.length
   }
