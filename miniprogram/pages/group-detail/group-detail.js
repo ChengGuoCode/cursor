@@ -20,20 +20,22 @@ const {
 
 function currentUserId() {
   const user = (getApp().globalData && getApp().globalData.userInfo) || {}
-  return user.id || user.userId || user.user_id || ''
+  // 与群成员 userId / ownerUserId 对齐，优先业务 userId
+  if (user.userId != null && user.userId !== '') return user.userId
+  if (user.id != null && user.id !== '') return user.id
+  if (user.user_id != null && user.user_id !== '') return user.user_id
+  return ''
 }
 
 async function ensureCurrentUserId() {
-  let uid = currentUserId()
-  if (uid) return uid
+  // 群组权限依赖准确的业务 userId，详情页每次尝试刷新资料
   try {
     const user = await getProfile()
     if (user) getApp().globalData.userInfo = user
-    uid = currentUserId()
   } catch (e) {
-    /* ignore */
+    /* 刷新失败则用缓存 */
   }
-  return uid
+  return currentUserId()
 }
 
 Page({

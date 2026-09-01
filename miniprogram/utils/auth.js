@@ -62,9 +62,18 @@ function normalizeLoginResult(raw) {
 function normalizeUser(raw) {
   if (!raw || typeof raw !== 'object') return null
   const nickname = raw.nickname || raw.nickName || raw.name || ''
+  // 业务用户 ID 优先 userId（与群成员 ownerUserId/userId 对齐）
+  // 避免 raw.id 实为 openid 时盖住数字 userId，导致群组权限匹配失败
+  const businessId =
+    raw.userId != null && raw.userId !== ''
+      ? raw.userId
+      : raw.id != null && raw.id !== ''
+        ? raw.id
+        : raw.openid || raw.openId || ''
   return {
     ...raw,
-    id: raw.id || raw.userId || raw.openid || '',
+    id: businessId,
+    userId: raw.userId != null && raw.userId !== '' ? raw.userId : businessId,
     nickname,
     avatarUrl: raw.avatarUrl || raw.avatar || raw.headImgUrl || '',
     phoneMask: raw.phoneMask || raw.phone || raw.mobile || '',
