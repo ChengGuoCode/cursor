@@ -101,7 +101,7 @@
 | --- | --- | --- |
 | GET | `/api/user/login` | code 换 token |
 | GET/PUT | `/api/user/profile` | 用户资料 |
-| GET | `/api/bill/overview` | 仪表盘 |
+| GET | `/api/bill/overview?scopeType=&groupId=&periodType=&month=` | 仪表盘（群组模式传 groupId） |
 | POST | `/api/bill/page` | 账单分页 |
 | GET | `/api/group/list` | 群组列表 |
 | GET | `/api/group/select?groupId=` | 指定群组详情 |

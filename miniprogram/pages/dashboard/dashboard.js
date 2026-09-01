@@ -171,11 +171,12 @@ Page({
     }
   },
 
+  /** @returns {*|null} 当前选中的 groupId */
   ensureGroupSelection() {
     const groupList = this.data.groupList || []
     if (!groupList.length) {
       this.setData({ currentGroupId: null, groupIndex: 0 })
-      return
+      return null
     }
     let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
     let groupIndex = groupList.findIndex((g) => String(g.groupId) === String(currentGroupId))
@@ -186,6 +187,7 @@ Page({
     }
     getApp().globalData.currentGroupId = currentGroupId
     this.setData({ groupIndex, currentGroupId })
+    return currentGroupId
   },
 
   async loadOverview() {
@@ -194,9 +196,12 @@ Page({
       return
     }
 
-    if (isGroupScope(this.data.scopeType)) {
-      this.ensureGroupSelection()
-      if (!this.data.currentGroupId) {
+    const groupMode = isGroupScope(this.data.scopeType)
+    let groupId = null
+    if (groupMode) {
+      // 下拉选中的群 → overview 的 groupId
+      groupId = this.ensureGroupSelection()
+      if (groupId == null || groupId === '') {
         this.setData({
           ...emptyOverviewState(this.data.monthLabel),
           guestMode: false
@@ -211,7 +216,7 @@ Page({
         month: this.data.month,
         scopeType: this.data.scopeType,
         periodType: this.data.periodType,
-        groupId: isGroupScope(this.data.scopeType) ? this.data.currentGroupId : null
+        groupId: groupMode ? groupId : undefined
       })
       const expense = Number(data.expense || 0)
       const income = Number(data.income || 0)
@@ -301,6 +306,7 @@ Page({
       scopeType: SCOPE_TYPE.GROUP,
       scopeLabel: scopeTypeLabel(SCOPE_TYPE.GROUP)
     })
+    // 切换下拉后按选中群重新拉概览
     this.loadOverview()
   },
 

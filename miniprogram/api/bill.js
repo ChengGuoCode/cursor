@@ -44,7 +44,11 @@ function mockBillToRes(b) {
 
 /**
  * 概览仪表盘 — GET /api/bill/overview
- * scopeType: 1=个人，2=群组；群组时传具体 groupId
+ * @param {object} params
+ * @param {number} params.scopeType 1个人 / 2群组（必填）
+ * @param {number|string} [params.groupId] 群组模式下传下拉选中的群
+ * @param {number} params.periodType
+ * @param {string} params.month yyyy-MM
  */
 function getOverview(params = {}) {
   const scopeType = normalizeScopeType(params.scopeType)
@@ -53,6 +57,7 @@ function getOverview(params = {}) {
     scopeType,
     periodType: params.periodType
   }
+  // 群组模式：必须带上选中群的 groupId
   if (isGroupScope(scopeType) && params.groupId != null && params.groupId !== '') {
     query.groupId = params.groupId
   }
