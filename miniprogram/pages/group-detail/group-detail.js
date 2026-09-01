@@ -50,36 +50,59 @@ Page({
   onLoad(query) {
     const groupId = query.groupId || ''
     this.setData({ groupId: groupId || null })
-    // 进入详情不改全局选中群（「当前」由概览/账单/记账驱动）
-    this._detailInited = false
+    // 本页实例只允许一次 select；改昵称等变更禁止再请求
+    this._selectConsumed = false
+    this._selectEpoch = 0
     this._pendingApplyFetched = false
     this._refreshPendingOnShow = false
-    this.loadDetail({ initial: true })
+    this._modalOpen = false
+    this.loadDetailOnce()
   },
 
   onShow() {
-    // 首次由 onLoad 拉取；返回页时优先用缓存（update/review 等写入）填充
-    if (!this._detailInited) return
+    // showModal 关闭也会进 onShow：此处绝不请求 select
+    if (this._modalOpen) {
+      this._modalOpen = false
+      return
+    }
 
     const cache = getApp().globalData.groupDetailCache
     if (cache && String(cache.groupId) === String(this.data.groupId)) {
-      this.applyGroupView(cache)
+      this.applyGroupView(cache, { merge: true })
       getApp().globalData.groupDetailCache = null
     }
 
-    // 从「入群申请」返回时再刷一次待审红点
+    // 从「入群申请」返回时再刷一次待审红点（listApply，不是 select）
     if (this._refreshPendingOnShow && this.data.canManage) {
       this._refreshPendingOnShow = false
       this.refreshPendingApplyBadge(this.data.groupId)
     }
   },
 
+  onHide() {
+    // 标记可能由 showModal 引起，避免误判为需要刷新详情
+  },
+
   /**
-   * 用 GroupDTO（select/update/updateMemberName/review 同源结构）填充详情
+   * 用 GroupDTO 填充详情。merge=true 时保留本地已有成员等字段，避免变更接口缺字段把页面掏空。
    */
-  applyGroupView(rawGroup) {
-    const group = normalizeGroup(rawGroup)
+  applyGroupView(rawGroup, { merge = false } = {}) {
+    const prev = this.data.group
+    let incoming = rawGroup
+    if (merge && prev && rawGroup && typeof rawGroup === 'object') {
+      const hasMembers =
+        Array.isArray(rawGroup.groupMembers) && rawGroup.groupMembers.length > 0
+      incoming = {
+        ...prev,
+        ...rawGroup,
+        groupMembers: hasMembers ? rawGroup.groupMembers : prev.groupMembers
+      }
+    }
+
+    const group = normalizeGroup(incoming)
     if (!group) {
+      // 变更回填失败时不清空已有详情，避免触发用户重新进页再次 select
+      if (prev) return { group: prev, manage: this.data.canManage }
       this.setData({
         group: null,
         members: [],
@@ -101,7 +124,7 @@ Page({
 
     this.setData({
       group,
-      groupId: group.groupId,
+      groupId: group.groupId != null ? group.groupId : this.data.groupId,
       members,
       myRoleType,
       isOwner: owner,
@@ -116,7 +139,17 @@ Page({
     return { group, manage }
   },
 
-  async loadDetail({ initial = false } = {}) {
+  /**
+   * 进入详情仅调用一次 select。之后改昵称/update 等不得再走此方法。
+   */
+  async loadDetailOnce() {
+    if (this._selectConsumed) {
+      console.warn('[group-detail] select already consumed, skip')
+      return
+    }
+    this._selectConsumed = true
+    const epoch = ++this._selectEpoch
+
     if (!isLoggedIn()) {
       this.setData({
         group: null,
@@ -139,19 +172,24 @@ Page({
         selectGroup(groupId).catch(() => null)
       ])
 
+      // 改昵称等已用更新结果回填：丢弃过期的 select 响应
+      if (epoch !== this._selectEpoch) {
+        console.warn('[group-detail] stale select response dropped')
+        return
+      }
+
       if (profile) {
         getApp().globalData.userInfo = profile
       }
 
       const view = this.applyGroupView(group)
-      this._detailInited = true
 
-      // 仅从群组页进入详情时拉一次待审红点
-      if (initial && view && view.manage && !this._pendingApplyFetched) {
+      if (view && view.manage && !this._pendingApplyFetched) {
         this._pendingApplyFetched = true
         await this.refreshPendingApplyBadge(view.group.groupId)
       }
     } catch (err) {
+      if (epoch !== this._selectEpoch) return
       toastError(err, '加载失败')
       this.setData({
         loading: false,
@@ -181,10 +219,12 @@ Page({
     }
   },
 
-  /** update / updateMemberName 成功后用返回体刷新，绝不走 select */
+  /** update / updateMemberName 成功后用返回体刷新；抬高 epoch 作废在途 select */
   applyMutationResult(updated) {
+    this._selectEpoch += 1
+    this._selectConsumed = true
     if (!updated || typeof updated !== 'object') return false
-    this.applyGroupView(updated)
+    this.applyGroupView(updated, { merge: true })
     return true
   },
 
@@ -192,6 +232,8 @@ Page({
    * 无完整 GroupDTO 时仅本地改自己的昵称（仍不请求 select）
    */
   patchMyMemberName(memberName) {
+    this._selectEpoch += 1
+    this._selectConsumed = true
     const uid = readUserId(getApp().globalData.userInfo)
     const group = this.data.group
     if (!group) return
@@ -220,22 +262,29 @@ Page({
   onEditMyName() {
     if (!requireLogin()) return
     const mine = findMyMember(this.data.group, readUserId(getApp().globalData.userInfo))
+    this._modalOpen = true
     wx.showModal({
       title: '修改群昵称',
       editable: true,
       placeholderText: '输入群内昵称',
       content: (mine && mine.memberName) || '',
       success: async (res) => {
-        if (!res.confirm) return
+        if (!res.confirm) {
+          this._modalOpen = false
+          return
+        }
         const memberName = (res.content || '').trim()
         if (!memberName) {
+          this._modalOpen = false
           wx.showToast({ title: '昵称不能为空', icon: 'none' })
           return
         }
         try {
           const groupId =
             this.data.groupId || (this.data.group && this.data.group.groupId)
-          // 仅用 updateMemberName 响应回填，禁止再调 select / loadDetail
+          // 先作废任何在途 select，再只用 updateMemberName 回填
+          this._selectEpoch += 1
+          this._selectConsumed = true
           const updated = await updateMemberName(groupId, memberName)
           if (!this.applyMutationResult(updated)) {
             this.patchMyMemberName(memberName)
@@ -243,7 +292,12 @@ Page({
           wx.showToast({ title: '已更新', icon: 'success' })
         } catch (err) {
           toastError(err, '更新失败')
+        } finally {
+          this._modalOpen = false
         }
+      },
+      fail: () => {
+        this._modalOpen = false
       }
     })
   },
