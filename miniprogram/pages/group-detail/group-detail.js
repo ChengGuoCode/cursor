@@ -249,58 +249,62 @@ Page({
 
     try {
       if (action === 'promote') {
-        await updateGroup({
-          groupId: group.groupId,
-          groupMembers: [
-            {
-              groupMemberId: member.groupMemberId,
-              userId: member.userId,
-              roleType: ROLE_TYPE.ADMIN,
-              status: MEMBER_STATUS.NORMAL
-            }
-          ]
-        })
+        await updateGroup(
+          this.buildUpdatePayload({
+            groupMembers: [
+              {
+                groupMemberId: member.groupMemberId,
+                userId: member.userId,
+                roleType: ROLE_TYPE.ADMIN,
+                status: MEMBER_STATUS.NORMAL
+              }
+            ]
+          })
+        )
       } else if (action === 'demote') {
-        await updateGroup({
-          groupId: group.groupId,
-          groupMembers: [
-            {
-              groupMemberId: member.groupMemberId,
-              userId: member.userId,
-              roleType: ROLE_TYPE.MEMBER,
-              status: MEMBER_STATUS.NORMAL
-            }
-          ]
-        })
+        await updateGroup(
+          this.buildUpdatePayload({
+            groupMembers: [
+              {
+                groupMemberId: member.groupMemberId,
+                userId: member.userId,
+                roleType: ROLE_TYPE.MEMBER,
+                status: MEMBER_STATUS.NORMAL
+              }
+            ]
+          })
+        )
       } else if (action === 'transfer') {
         const ok = await this.confirmModal('让出群主', `确定将群主转让给「${member.memberName}」？`)
         if (!ok) return
-        await updateGroup({
-          groupId: group.groupId,
-          ownerUserId: member.userId,
-          groupMembers: [
-            {
-              groupMemberId: member.groupMemberId,
-              userId: member.userId,
-              roleType: ROLE_TYPE.OWNER,
-              status: MEMBER_STATUS.NORMAL
-            }
-          ]
-        })
+        await updateGroup(
+          this.buildUpdatePayload({
+            ownerUserId: member.userId,
+            groupMembers: [
+              {
+                groupMemberId: member.groupMemberId,
+                userId: member.userId,
+                roleType: ROLE_TYPE.OWNER,
+                status: MEMBER_STATUS.NORMAL
+              }
+            ]
+          })
+        )
       } else if (action === 'remove') {
         const ok = await this.confirmModal('移除成员', `确定移除「${member.memberName}」？`)
         if (!ok) return
-        await updateGroup({
-          groupId: group.groupId,
-          groupMembers: [
-            {
-              groupMemberId: member.groupMemberId,
-              userId: member.userId,
-              roleType: member.roleType,
-              status: MEMBER_STATUS.EXITED
-            }
-          ]
-        })
+        await updateGroup(
+          this.buildUpdatePayload({
+            groupMembers: [
+              {
+                groupMemberId: member.groupMemberId,
+                userId: member.userId,
+                roleType: member.roleType,
+                status: MEMBER_STATUS.EXITED
+              }
+            ]
+          })
+        )
       }
       wx.showToast({ title: '已更新', icon: 'success' })
       this.loadDetail()
@@ -329,10 +333,11 @@ Page({
       success: async (res) => {
         if (!res.confirm) return
         try {
-          await updateGroup({
-            groupId: group.groupId,
-            status: GROUP_STATUS.DISSOLVED
-          })
+          await updateGroup(
+            this.buildUpdatePayload({
+              status: GROUP_STATUS.DISSOLVED
+            })
+          )
           const app = getApp()
           if (
             app.globalData.currentGroupId != null &&
