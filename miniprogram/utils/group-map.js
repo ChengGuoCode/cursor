@@ -43,6 +43,7 @@ function roleTypeLabel(roleType) {
   const n = Number(roleType)
   if (n === ROLE_TYPE.OWNER) return '群主'
   if (n === ROLE_TYPE.ADMIN) return '管理员'
+  if (n === ROLE_TYPE.MEMBER) return '成员'
   return '成员'
 }
 
