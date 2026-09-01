@@ -33,7 +33,6 @@
         </view>
         <view class="group-meta">
           {{item.memberCount}} 人
-          <text wx:if="{{item.inviteCode}}"> · 邀请码 {{item.inviteCode}}</text>
         </view>
       </view>
     </view>
