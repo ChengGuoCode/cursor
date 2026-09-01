@@ -114,7 +114,7 @@ Page({
       }
 
       const myRoleType = resolveMyRoleType(group, uid)
-      const owner = isOwner(myRoleType)
+      const owner = checkIsOwner(myRoleType)
       const manage = canReview(myRoleType)
       const members = (group.groupMembers || [])
         .filter((m) => Number(m.status) === MEMBER_STATUS.NORMAL)
