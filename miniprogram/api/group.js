@@ -244,18 +244,45 @@ function reviewApply(reqDTO) {
   }).then((data) => (data ? normalizeGroup(data) : data))
 }
 
-/** 更新我在群内昵称 — POST /api/group/updateMemberName?groupId=&memberName= */
+/** 更新我在群内昵称 — POST /api/group/updateMemberName?groupId=&memberName=
+ * 成功返回 GroupDTO（与 select 一致），调用方直接回填，勿再 select
+ */
 function updateMemberName(groupId, memberName) {
   if (groupId == null || groupId === '') {
     return Promise.reject(new Error('缺少 groupId'))
   }
+  const name = (memberName || '').trim()
   if (shouldUseMock()) {
-    return Promise.resolve(true)
+    const g = mockGroups.find((item) => String(item.id) === String(groupId)) || mockGroups[0]
+    if (!g) return Promise.reject(new Error('暂无群组'))
+    return Promise.resolve(
+      normalizeGroup({
+        groupId: g.id,
+        groupName: g.name,
+        ownerUserId: 1001,
+        inviteCode: 'MOCK01',
+        status: GROUP_STATUS.NORMAL,
+        groupMembers: [
+          {
+            groupMemberId: 1,
+            groupId: g.id,
+            userId: 1001,
+            roleType: ROLE_TYPE.OWNER,
+            memberName: name || '阿树',
+            status: MEMBER_STATUS.NORMAL,
+            sortNo: 1
+          }
+        ]
+      })
+    )
   }
   return postWithQuery('/api/group/updateMemberName', {
     groupId,
-    memberName: (memberName || '').trim()
-  }).then((data) => (data ? normalizeGroup(data) : data))
+    memberName: name
+  }).then((data) => {
+    if (!data) return null
+    return normalizeGroup(data)
+  })
 }
 
 /** 退出群组 — POST /api/group/exit?groupId= */

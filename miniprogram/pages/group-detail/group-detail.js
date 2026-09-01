@@ -181,10 +181,71 @@ Page({
     }
   },
 
-  /** update / updateMemberName 成功后用返回体刷新，不再 select */
+  /** update / updateMemberName 成功后用返回体刷新，绝不走 select */
   applyMutationResult(updated) {
-    if (!updated) return
+    if (!updated || typeof updated !== 'object') return false
     this.applyGroupView(updated)
+    return true
+  },
+
+  /**
+   * 无完整 GroupDTO 时仅本地改自己的昵称（仍不请求 select）
+   */
+  patchMyMemberName(memberName) {
+    const uid = readUserId(getApp().globalData.userInfo)
+    const group = this.data.group
+    if (!group) return
+    const members = (this.data.members || []).map((m) => {
+      if (String(m.userId) === String(uid)) {
+        return {
+          ...m,
+          memberName,
+          avatarText: (memberName || '?').slice(0, 1)
+        }
+      }
+      return m
+    })
+    const groupMembers = (group.groupMembers || []).map((m) => {
+      if (String(m.userId) === String(uid)) {
+        return { ...m, memberName }
+      }
+      return m
+    })
+    this.setData({
+      members,
+      group: { ...group, groupMembers }
+    })
+  },
+
+  onEditMyName() {
+    if (!requireLogin()) return
+    const mine = findMyMember(this.data.group, readUserId(getApp().globalData.userInfo))
+    wx.showModal({
+      title: '修改群昵称',
+      editable: true,
+      placeholderText: '输入群内昵称',
+      content: (mine && mine.memberName) || '',
+      success: async (res) => {
+        if (!res.confirm) return
+        const memberName = (res.content || '').trim()
+        if (!memberName) {
+          wx.showToast({ title: '昵称不能为空', icon: 'none' })
+          return
+        }
+        try {
+          const groupId =
+            this.data.groupId || (this.data.group && this.data.group.groupId)
+          // 仅用 updateMemberName 响应回填，禁止再调 select / loadDetail
+          const updated = await updateMemberName(groupId, memberName)
+          if (!this.applyMutationResult(updated)) {
+            this.patchMyMemberName(memberName)
+          }
+          wx.showToast({ title: '已更新', icon: 'success' })
+        } catch (err) {
+          toastError(err, '更新失败')
+        }
+      }
+    })
   },
 
   copyInvite() {
@@ -260,34 +321,6 @@ Page({
         }
         try {
           const updated = await updateGroup(this.buildUpdatePayload({ groupName }))
-          this.applyMutationResult(updated)
-          wx.showToast({ title: '已更新', icon: 'success' })
-        } catch (err) {
-          toastError(err, '更新失败')
-        }
-      }
-    })
-  },
-
-  onEditMyName() {
-    if (!requireLogin()) return
-    const mine = findMyMember(this.data.group, readUserId(getApp().globalData.userInfo))
-    wx.showModal({
-      title: '修改群昵称',
-      editable: true,
-      placeholderText: '输入群内昵称',
-      content: (mine && mine.memberName) || '',
-      success: async (res) => {
-        if (!res.confirm) return
-        const memberName = (res.content || '').trim()
-        if (!memberName) {
-          wx.showToast({ title: '昵称不能为空', icon: 'none' })
-          return
-        }
-        try {
-          const groupId =
-            this.data.groupId || (this.data.group && this.data.group.groupId)
-          const updated = await updateMemberName(groupId, memberName)
           this.applyMutationResult(updated)
           wx.showToast({ title: '已更新', icon: 'success' })
         } catch (err) {
