@@ -313,8 +313,17 @@ Page({
             groupId: group.groupId,
             status: GROUP_STATUS.DISSOLVED
           })
+          const app = getApp()
+          if (
+            app.globalData.currentGroupId != null &&
+            String(app.globalData.currentGroupId) === String(group.groupId)
+          ) {
+            app.globalData.currentGroupId = null
+          }
           wx.showToast({ title: '已解散', icon: 'success' })
-          setTimeout(() => wx.navigateBack(), 400)
+          setTimeout(() => {
+            wx.switchTab({ url: '/pages/groups/groups' })
+          }, 400)
         } catch (err) {
           toastError(err, '解散失败')
         }
