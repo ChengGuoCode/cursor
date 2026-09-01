@@ -69,11 +69,16 @@ function getGroups() {
 }
 
 /**
- * 当前群组详情（含成员）— GET /api/group/select
+ * 群组详情（含成员）— GET /api/group/select?groupId=
+ * @param {number|string} groupId
  */
-function selectGroup() {
+function selectGroup(groupId) {
+  if (groupId == null || groupId === '') {
+    return Promise.reject(new Error('缺少 groupId'))
+  }
   if (shouldUseMock()) {
-    const g = mockGroups[0]
+    const g =
+      mockGroups.find((item) => String(item.id) === String(groupId)) || mockGroups[0]
     if (!g) return Promise.reject(new Error('暂无群组'))
     return Promise.resolve(
       normalizeGroup({
@@ -105,7 +110,11 @@ function selectGroup() {
       })
     )
   }
-  return request({ url: '/api/group/select', method: 'GET' }).then(normalizeGroup)
+  return request({
+    url: '/api/group/select',
+    method: 'GET',
+    data: { groupId }
+  }).then(normalizeGroup)
 }
 
 /**

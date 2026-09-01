@@ -103,7 +103,7 @@
 | GET | `/api/bill/overview` | 仪表盘 |
 | POST | `/api/bill/page` | 账单分页 |
 | GET | `/api/group/list` | 群组列表 |
-| GET | `/api/group/select` | 当前群组详情 |
+| GET | `/api/group/select?groupId=` | 指定群组详情 |
 | POST | `/api/group/create` | 创建群组 |
 | POST | `/api/group/update` | 更新群组 |
 | POST | `/api/group/apply` | 申请加入 |

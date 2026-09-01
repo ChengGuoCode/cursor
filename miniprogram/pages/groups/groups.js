@@ -5,7 +5,8 @@ const {
   findMyMember,
   roleTypeLabel,
   GROUP_STATUS,
-  normalizeGroup
+  normalizeGroup,
+  pickActiveGroups
 } = require('../../utils/group-map')
 const { applyScopePreference } = require('../../utils/scope-store')
 
@@ -15,7 +16,7 @@ function currentUserId() {
 }
 
 /**
- * list 可能不带成员；select 会返回当前群完整 groupMembers。
+ * list 可能不带成员；select 会返回指定群完整 groupMembers。
  * 把 select 的成员集合合并进对应列表项，人数用集合长度。
  */
 function mergeCurrentGroupMembers(groups, current) {
@@ -44,6 +45,24 @@ function mergeCurrentGroupMembers(groups, current) {
   return next
 }
 
+/** 解析用于 select 的 groupId：优先全局已选且仍在列表，否则最新生效群 */
+function resolveSelectGroupId(groups) {
+  const list = groups || []
+  if (!list.length) return null
+  const app = getApp()
+  const preferred = app.globalData && app.globalData.currentGroupId
+  if (
+    preferred != null &&
+    preferred !== '' &&
+    list.some((g) => String(g.groupId) === String(preferred))
+  ) {
+    return preferred
+  }
+  const { newest } = pickActiveGroups(list)
+  if (newest) return newest.groupId
+  return list[0].groupId
+}
+
 Page({
   data: {
     groups: [],
@@ -66,12 +85,11 @@ Page({
 
     wx.showNavigationBarLoading()
     try {
-      const [{ list }, current] = await Promise.all([
-        getGroups(),
-        selectGroup().catch(() => null)
-      ])
-      const uid = currentUserId()
+      const { list } = await getGroups()
       let groups = (list || []).filter((g) => Number(g.status) !== GROUP_STATUS.DISSOLVED)
+      const selectId = resolveSelectGroupId(groups)
+      const current = selectId != null ? await selectGroup(selectId).catch(() => null) : null
+      const uid = currentUserId()
       groups = mergeCurrentGroupMembers(groups, current)
 
       if (current && current.groupId != null) {
@@ -127,6 +145,9 @@ Page({
 
   goApplyList() {
     if (!requireLogin('查看申请前请先登录')) return
-    wx.navigateTo({ url: '/pages/group-apply/group-apply' })
+    const groupId = this.data.currentGroupId || getApp().globalData.currentGroupId || ''
+    wx.navigateTo({
+      url: `/pages/group-apply/group-apply?groupId=${groupId}`
+    })
   }
 })

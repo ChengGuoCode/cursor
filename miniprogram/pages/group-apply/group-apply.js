@@ -21,6 +21,7 @@ function currentUserId() {
 
 Page({
   data: {
+    groupId: null,
     applyStatus: null,
     statusOptions: APPLY_STATUS_OPTIONS.map((o) => ({
       ...o,
@@ -30,6 +31,14 @@ Page({
     list: [],
     canReview: false,
     guestMode: false
+  },
+
+  onLoad(query) {
+    const groupId =
+      (query && query.groupId) ||
+      (getApp().globalData && getApp().globalData.currentGroupId) ||
+      null
+    this.setData({ groupId: groupId || null })
   },
 
   onShow() {
@@ -42,10 +51,16 @@ Page({
       return
     }
     try {
-      const group = await selectGroup().catch(() => null)
+      const groupId =
+        this.data.groupId ||
+        (getApp().globalData && getApp().globalData.currentGroupId)
+      const group = groupId != null && groupId !== ''
+        ? await selectGroup(groupId).catch(() => null)
+        : null
       const mine = findMyMember(group, currentUserId())
       this.setData({
         guestMode: false,
+        groupId: groupId || null,
         canReview: !!(mine && canReview(mine.roleType))
       })
     } catch (e) {

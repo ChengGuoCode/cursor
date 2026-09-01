@@ -94,15 +94,26 @@ async function syncScopeAfterGroupChange() {
   }
 
   const { getGroups, selectGroup } = require('../api/group')
+  const { pickActiveGroups } = require('./group-map')
   const { list } = await getGroups()
   let currentGroupId = null
   let currentGroupName = ''
 
   if (list && list.length) {
-    const current = await selectGroup().catch(() => null)
-    if (current && current.groupId != null) {
-      currentGroupId = current.groupId
-      currentGroupName = current.groupName || ''
+    const { newest } = pickActiveGroups(list)
+    const selectId =
+      (newest && newest.groupId) ||
+      (list[0] && list[0].groupId) ||
+      null
+    if (selectId != null) {
+      const current = await selectGroup(selectId).catch(() => null)
+      if (current && current.groupId != null) {
+        currentGroupId = current.groupId
+        currentGroupName = current.groupName || ''
+      } else {
+        currentGroupId = selectId
+        currentGroupName = (newest && newest.groupName) || (list[0] && list[0].groupName) || ''
+      }
     }
   }
 

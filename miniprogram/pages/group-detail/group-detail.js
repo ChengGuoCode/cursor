@@ -70,9 +70,10 @@ Page({
     wx.showNavigationBarLoading()
     try {
       // 详情以 select 为准（含 groupMembers / ownerUserId），不要用 list 覆盖掉权限字段
+      const groupId = this.data.groupId
       const [profile, group] = await Promise.all([
         getProfile().catch(() => null),
-        selectGroup().catch(() => null)
+        selectGroup(groupId).catch(() => null)
       ])
 
       if (profile) {
@@ -394,6 +395,8 @@ Page({
   },
 
   goApplyList() {
-    wx.navigateTo({ url: '/pages/group-apply/group-apply' })
+    wx.navigateTo({
+      url: `/pages/group-apply/group-apply?groupId=${this.data.groupId || ''}`
+    })
   }
 })
