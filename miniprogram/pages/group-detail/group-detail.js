@@ -112,6 +112,25 @@ Page({
     })
   },
 
+  /**
+   * 组装 update 入参。
+   * 刷新邀请码：inviteCode 传空；其它更新：带上旧邀请码。
+   */
+  buildUpdatePayload(extra = {}, { refreshInvite = false } = {}) {
+    const group = this.data.group
+    if (!group) return null
+    const payload = {
+      groupId: group.groupId,
+      ...extra
+    }
+    if (refreshInvite) {
+      payload.inviteCode = ''
+    } else {
+      payload.inviteCode = group.inviteCode || ''
+    }
+    return payload
+  },
+
   async onRefreshInvite() {
     if (!requireLogin() || !this.data.isOwner) return
     const group = this.data.group
@@ -122,11 +141,12 @@ Page({
       success: async (res) => {
         if (!res.confirm) return
         try {
-          await updateGroup({
-            groupId: group.groupId,
-            groupName: group.groupName,
-            inviteCode: ''
-          })
+          await updateGroup(
+            this.buildUpdatePayload(
+              { groupName: group.groupName },
+              { refreshInvite: true }
+            )
+          )
           wx.showToast({ title: '已刷新', icon: 'success' })
           this.loadDetail()
         } catch (err) {
@@ -152,7 +172,7 @@ Page({
           return
         }
         try {
-          await updateGroup({ groupId: group.groupId, groupName })
+          await updateGroup(this.buildUpdatePayload({ groupName }))
           wx.showToast({ title: '已更新', icon: 'success' })
           this.loadDetail()
         } catch (err) {
