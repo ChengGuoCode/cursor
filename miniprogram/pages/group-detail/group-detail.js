@@ -251,7 +251,9 @@ Page({
           return
         }
         try {
-          await updateMemberName(memberName)
+          const groupId =
+            this.data.groupId || (this.data.group && this.data.group.groupId)
+          await updateMemberName(groupId, memberName)
           wx.showToast({ title: '已更新', icon: 'success' })
           this.loadDetail()
         } catch (err) {
@@ -414,7 +416,9 @@ Page({
       success: async (res) => {
         if (!res.confirm) return
         try {
-          await exitGroup()
+          const groupId =
+            this.data.groupId || (this.data.group && this.data.group.groupId)
+          await exitGroup(groupId)
           await syncScopeAfterGroupChange()
           wx.showToast({ title: '已退出', icon: 'success' })
           setTimeout(() => {

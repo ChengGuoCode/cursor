@@ -91,7 +91,7 @@
 - `GET /select`：当前群组（含 `groupMembers`）
 - `GET /listApply`：入群申请（可选 `groupId`、`applyStatus`：0待审核 / 1通过 / 2拒绝 / 3取消）
 - `POST /apply`：邀请码申请；`POST /cancelApply`：取消；`POST /review`：审核
-- `POST /updateMemberName`：改群昵称；`POST /exit`：退出
+- `POST /updateMemberName`：改群昵称（`groupId`、`memberName`）；`POST /exit`：退出（`groupId`）
 - `roleType`：`1群主 / 2管理员 / 3成员`；成员与群组 `status`：`1正常 / 0退出或解散`
 
 ### 预留接口一览
@@ -110,8 +110,8 @@
 | GET | `/api/group/listApply?groupId=&applyStatus=` | 入群申请列表 |
 | POST | `/api/group/review` | 审核申请 |
 | POST | `/api/group/cancelApply` | 取消申请 |
-| POST | `/api/group/updateMemberName` | 更新群昵称 |
-| POST | `/api/group/exit` | 退出群组 |
+| POST | `/api/group/updateMemberName?groupId=&memberName=` | 更新群昵称 |
+| POST | `/api/group/exit?groupId=` | 退出群组 |
 
 ## 本地运行
 

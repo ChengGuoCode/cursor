@@ -244,20 +244,27 @@ function reviewApply(reqDTO) {
   }).then((data) => (data ? normalizeGroup(data) : data))
 }
 
-/** 更新我在当前群的昵称 — POST /api/group/updateMemberName?memberName= */
-function updateMemberName(memberName) {
+/** 更新我在群内昵称 — POST /api/group/updateMemberName?groupId=&memberName= */
+function updateMemberName(groupId, memberName) {
+  if (groupId == null || groupId === '') {
+    return Promise.reject(new Error('缺少 groupId'))
+  }
   if (shouldUseMock()) {
     return Promise.resolve(true)
   }
   return postWithQuery('/api/group/updateMemberName', {
+    groupId,
     memberName: (memberName || '').trim()
   }).then((data) => (data ? normalizeGroup(data) : data))
 }
 
-/** 退出当前群组 — POST /api/group/exit */
-function exitGroup() {
+/** 退出群组 — POST /api/group/exit?groupId= */
+function exitGroup(groupId) {
+  if (groupId == null || groupId === '') {
+    return Promise.reject(new Error('缺少 groupId'))
+  }
   if (shouldUseMock()) return Promise.resolve(true)
-  return postWithQuery('/api/group/exit', {})
+  return postWithQuery('/api/group/exit', { groupId })
 }
 
 module.exports = {
