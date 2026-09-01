@@ -4,7 +4,7 @@ const { getGroups } = require('../../api/group')
 const { formatMoney, formatMonthLabel, groupBillsByDate } = require('../../utils/format')
 const { isLoggedIn } = require('../../utils/auth')
 const { loadConfig, findCategory, getCachedCategories } = require('../../utils/config-store')
-const { GROUP_STATUS } = require('../../utils/group-map')
+const { GROUP_STATUS, pickActiveGroups } = require('../../utils/group-map')
 const {
   BILL_TYPE,
   BILL_TYPE_OPTIONS,
@@ -132,7 +132,7 @@ Page({
   /**
    * 仅用 group/list：
    * - 集合为空 → 个人，切换置灰
-   * - 有 status=1 → 默认群组，下拉选中该生效群
+   * - 有 status=1 → 默认群组，下拉选中生效群（多条取 createTime 最新）
    * - 无 status=1 → 默认个人；集合非空仍可切换
    */
   async refreshGroupAvailability() {
@@ -140,10 +140,8 @@ Page({
       const { list } = await getGroups()
       const groupList = list || []
       const canSwap = groupList.length > 0
-      const activeIndex = groupList.findIndex(
-        (g) => Number(g.status) === GROUP_STATUS.NORMAL
-      )
-      const hasActive = activeIndex >= 0
+      const { newest } = pickActiveGroups(groupList)
+      const hasActive = !!newest
       const app = getApp()
 
       let scopeType = SCOPE_TYPE.PERSONAL
@@ -155,13 +153,31 @@ Page({
         setGlobalScopeType(SCOPE_TYPE.PERSONAL)
         app.globalData.currentGroupId = null
       } else if (hasActive) {
-        const active = groupList[activeIndex]
+        // 已选中且仍为 status=1 则保留，否则落到 createTime 最新
+        const currentStillActive = groupList.some(
+          (g) =>
+            Number(g.status) === GROUP_STATUS.NORMAL &&
+            String(g.groupId) === String(app.globalData.currentGroupId)
+        )
+        const preferredId = currentStillActive
+          ? app.globalData.currentGroupId
+          : newest.groupId
         const scope = applyScopePreference(groupList, {
-          currentGroupId: active.groupId
+          currentGroupId: preferredId
         })
         scopeType = scope.scopeType
         currentGroupId = scope.currentGroupId
-        groupIndex = scope.groupIndex >= 0 ? scope.groupIndex : activeIndex
+        groupIndex = groupList.findIndex(
+          (g) => String(g.groupId) === String(currentGroupId)
+        )
+        if (groupIndex < 0) {
+          groupIndex = groupList.findIndex(
+            (g) => String(g.groupId) === String(newest.groupId)
+          )
+          if (groupIndex < 0) groupIndex = 0
+          currentGroupId = groupList[groupIndex].groupId
+          app.globalData.currentGroupId = currentGroupId
+        }
       } else {
         // 有群但无生效群：默认个人；切群组时用列表第一项（或已选中项）
         groupIndex = Math.max(
@@ -215,8 +231,13 @@ Page({
     let currentGroupId = this.data.currentGroupId || getApp().globalData.currentGroupId
     let groupIndex = groupList.findIndex((g) => String(g.groupId) === String(currentGroupId))
     if (groupIndex < 0) {
-      // 优先落到 status=1 的生效群
-      groupIndex = groupList.findIndex((g) => Number(g.status) === GROUP_STATUS.NORMAL)
+      // 优先落到 createTime 最新的 status=1 生效群
+      const { newest } = pickActiveGroups(groupList)
+      if (newest) {
+        groupIndex = groupList.findIndex(
+          (g) => String(g.groupId) === String(newest.groupId)
+        )
+      }
       if (groupIndex < 0) groupIndex = 0
       currentGroupId = groupList[groupIndex].groupId
     }
