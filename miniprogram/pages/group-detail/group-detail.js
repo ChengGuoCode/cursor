@@ -5,6 +5,7 @@ const {
   exitGroup,
   getGroups
 } = require('../../api/group')
+const { getProfile } = require('../../api/user')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
 const { toastError } = require('../../utils/request')
 const {
@@ -12,13 +13,27 @@ const {
   MEMBER_STATUS,
   GROUP_STATUS,
   findMyMember,
-  isOwner,
+  resolveMyRoleType,
+  isOwner: checkIsOwner,
   canReview
 } = require('../../utils/group-map')
 
 function currentUserId() {
   const user = (getApp().globalData && getApp().globalData.userInfo) || {}
-  return user.id || user.userId || ''
+  return user.id || user.userId || user.user_id || ''
+}
+
+async function ensureCurrentUserId() {
+  let uid = currentUserId()
+  if (uid) return uid
+  try {
+    const user = await getProfile()
+    if (user) getApp().globalData.userInfo = user
+    uid = currentUserId()
+  } catch (e) {
+    /* ignore */
+  }
+  return uid
 }
 
 Page({
@@ -45,38 +60,62 @@ Page({
 
   async loadDetail() {
     if (!isLoggedIn()) {
-      this.setData({ group: null, members: [], loading: false, empty: true })
+      this.setData({
+        group: null,
+        members: [],
+        loading: false,
+        empty: true,
+        isOwner: false,
+        canManage: false
+      })
       return
     }
 
     this.setData({ loading: true })
     wx.showNavigationBarLoading()
     try {
+      const uid = await ensureCurrentUserId()
       let group = await selectGroup().catch(() => null)
 
-      // select 若与目标 groupId 不一致，用 list 兜底基础信息
+      // select 若与目标 groupId 不一致，用 list 兜底，并尽量保留 select 的成员用于角色判断
       const wantId = this.data.groupId
       if (wantId && group && String(group.groupId) !== String(wantId)) {
+        const selectSnapshot = group
         const { list } = await getGroups()
         const found = (list || []).find((g) => String(g.groupId) === String(wantId))
         if (found) {
+          const members =
+            (found.groupMembers && found.groupMembers.length
+              ? found.groupMembers
+              : null) ||
+            (String(selectSnapshot.groupId) === String(wantId)
+              ? selectSnapshot.groupMembers
+              : []) ||
+            []
           group = {
             ...found,
-            groupMembers: found.groupMembers || [],
-            // 非当前群时仍展示 list 数据；管理操作以后端当前群为准
-            _notCurrent: true
+            groupMembers: members,
+            ownerUserId: found.ownerUserId || selectSnapshot.ownerUserId,
+            inviteCode: found.inviteCode || selectSnapshot.inviteCode
           }
         }
       }
 
       if (!group) {
-        this.setData({ group: null, members: [], empty: true, loading: false })
+        this.setData({
+          group: null,
+          members: [],
+          empty: true,
+          loading: false,
+          isOwner: false,
+          canManage: false
+        })
         return
       }
 
-      const uid = currentUserId()
-      const mine = findMyMember(group, uid)
-      const myRoleType = mine ? mine.roleType : null
+      const myRoleType = resolveMyRoleType(group, uid)
+      const owner = isOwner(myRoleType)
+      const manage = canReview(myRoleType)
       const members = (group.groupMembers || [])
         .filter((m) => Number(m.status) === MEMBER_STATUS.NORMAL)
         .sort((a, b) => (a.sortNo || 0) - (b.sortNo || 0) || a.roleType - b.roleType)
@@ -87,14 +126,14 @@ Page({
         group,
         members,
         myRoleType,
-        isOwner: isOwner(myRoleType),
-        canManage: canReview(myRoleType),
+        isOwner: owner,
+        canManage: manage,
         empty: false,
         loading: false
       })
     } catch (err) {
       toastError(err, '加载失败')
-      this.setData({ loading: false, empty: true })
+      this.setData({ loading: false, empty: true, isOwner: false, canManage: false })
     } finally {
       wx.hideNavigationBarLoading()
     }

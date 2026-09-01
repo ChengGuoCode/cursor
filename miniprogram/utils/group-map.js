@@ -137,13 +137,35 @@ function normalizeApply(a) {
 function findMyMember(group, userId) {
   if (!group || userId == null || userId === '') return null
   const members = group.groupMembers || []
+  const sameUser = (m) =>
+    String(m.userId) === String(userId) ||
+    (m.userId == null && m.id != null && String(m.id) === String(userId))
   return (
     members.find(
-      (m) =>
-        String(m.userId) === String(userId) &&
-        Number(m.status) === MEMBER_STATUS.NORMAL
-    ) || null
+      (m) => sameUser(m) && Number(m.status) === MEMBER_STATUS.NORMAL
+    ) ||
+    members.find(sameUser) ||
+    null
   )
+}
+
+/**
+ * 解析当前用户在群内角色。
+ * 优先成员表 roleType；匹配不到时用 ownerUserId 兜底为群主。
+ */
+function resolveMyRoleType(group, userId) {
+  const mine = findMyMember(group, userId)
+  if (mine && mine.roleType != null) return Number(mine.roleType)
+  if (
+    userId != null &&
+    userId !== '' &&
+    group &&
+    group.ownerUserId != null &&
+    String(group.ownerUserId) === String(userId)
+  ) {
+    return ROLE_TYPE.OWNER
+  }
+  return null
 }
 
 module.exports = {
@@ -160,5 +182,6 @@ module.exports = {
   normalizeGroup,
   normalizeMember,
   normalizeApply,
-  findMyMember
+  findMyMember,
+  resolveMyRoleType
 }
