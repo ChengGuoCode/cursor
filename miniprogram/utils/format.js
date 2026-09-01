@@ -2,11 +2,57 @@ function pad(n) {
   return n < 10 ? `0${n}` : `${n}`
 }
 
+/**
+ * 解析为 Date。
+ * 避免 iOS 不支持的字符串（如 "2026/09"）：只走组件构造或 iOS 白名单格式。
+ * 支持：yyyy-MM、yyyy-MM-dd、yyyy-MM-dd HH:mm[:ss]、ISO(T)、时间戳、Date。
+ */
 function toDate(input) {
-  if (!input) return new Date()
+  if (!input && input !== 0) return new Date()
   if (input instanceof Date) return input
-  if (typeof input === 'number') return new Date(input)
-  return new Date(String(input).replace(/-/g, '/'))
+  if (typeof input === 'number') {
+    const d = new Date(input)
+    return Number.isNaN(d.getTime()) ? new Date() : d
+  }
+
+  const str = String(input).trim()
+  if (!str) return new Date()
+
+  // yyyy-MM / yyyy/MM → 当月 1 日
+  let m = str.match(/^(\d{4})[-/](\d{1,2})$/)
+  if (m) {
+    return new Date(Number(m[1]), Number(m[2]) - 1, 1)
+  }
+
+  // yyyy-MM-dd / yyyy/MM/dd
+  m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/)
+  if (m) {
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  }
+
+  // yyyy-MM-dd HH:mm[:ss] / yyyy/MM/dd HH:mm[:ss] / 中间用 T
+  m = str.match(
+    /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/
+  )
+  if (m) {
+    return new Date(
+      Number(m[1]),
+      Number(m[2]) - 1,
+      Number(m[3]),
+      Number(m[4]),
+      Number(m[5]),
+      Number(m[6] || 0)
+    )
+  }
+
+  // iOS 支持的 ISO：yyyy-MM-ddTHH:mm:ss[+HH:mm]
+  if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+    const iso = new Date(str)
+    if (!Number.isNaN(iso.getTime())) return iso
+  }
+
+  const fallback = new Date(str)
+  return Number.isNaN(fallback.getTime()) ? new Date() : fallback
 }
 
 /**
@@ -73,6 +119,7 @@ function groupBillsByDate(bills = []) {
 }
 
 module.exports = {
+  toDate,
   formatMoney,
   formatDate,
   formatMonthLabel,
