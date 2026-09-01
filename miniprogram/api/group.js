@@ -174,22 +174,35 @@ function updateGroup(reqDTO) {
   }).then(normalizeGroup)
 }
 
-/** 申请列表 — GET /api/group/listApply?applyStatus= */
-function listApply(applyStatus) {
+/** 申请列表 — GET /api/group/listApply?groupId=&applyStatus= */
+function listApply(options = {}) {
+  const groupId = options.groupId
+  const applyStatus = options.applyStatus
   if (shouldUseMock()) {
-    return Promise.resolve([
-      normalizeApply({
-        id: 1,
-        groupId: mockGroups[0] && mockGroups[0].id,
-        userId: 1009,
-        nickname: '小新',
-        applyMessage: '想一起记账',
-        status: 0,
-        createTime: new Date().toISOString()
+    return Promise.resolve(
+      [
+        normalizeApply({
+          id: 1,
+          groupId: mockGroups[0] && mockGroups[0].id,
+          userId: 1009,
+          nickname: '小新',
+          applyMessage: '想一起记账',
+          status: 0,
+          createTime: new Date().toISOString()
+        })
+      ].filter((item) => {
+        if (groupId != null && groupId !== '' && String(item.groupId) !== String(groupId)) {
+          return false
+        }
+        if (applyStatus != null && applyStatus !== '' && Number(item.status) !== Number(applyStatus)) {
+          return false
+        }
+        return true
       })
-    ])
+    )
   }
   const data = {}
+  if (groupId != null && groupId !== '') data.groupId = groupId
   if (applyStatus != null && applyStatus !== '') data.applyStatus = applyStatus
   return request({ url: '/api/group/listApply', method: 'GET', data }).then((list) =>
     (Array.isArray(list) ? list : []).map(normalizeApply).filter(Boolean)

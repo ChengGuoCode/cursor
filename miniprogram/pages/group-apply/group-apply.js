@@ -10,7 +10,8 @@ const {
   APPLY_STATUS,
   APPLY_STATUS_OPTIONS,
   canReview,
-  findMyMember
+  findMyMember,
+  resolveMyRoleType
 } = require('../../utils/group-map')
 const { formatDate } = require('../../utils/format')
 
@@ -21,6 +22,7 @@ function currentUserId() {
 
 Page({
   data: {
+    /** 仅群详情入口会带上；群组页入口为空 */
     groupId: null,
     applyStatus: null,
     statusOptions: APPLY_STATUS_OPTIONS.map((o) => ({
@@ -34,11 +36,10 @@ Page({
   },
 
   onLoad(query) {
-    const groupId =
-      (query && query.groupId) ||
-      (getApp().globalData && getApp().globalData.currentGroupId) ||
-      null
-    this.setData({ groupId: groupId || null })
+    // 只有路由显式带 groupId 才按群过滤，避免群组页误带上全局当前群
+    const raw = query && query.groupId
+    const groupId = raw != null && raw !== '' ? raw : null
+    this.setData({ groupId })
   },
 
   onShow() {
@@ -50,22 +51,28 @@ Page({
       this.setData({ list: [], guestMode: true, canReview: false })
       return
     }
+
+    const groupId = this.data.groupId
+    let canReviewFlag = false
+
     try {
-      const groupId =
-        this.data.groupId ||
-        (getApp().globalData && getApp().globalData.currentGroupId)
-      const group = groupId != null && groupId !== ''
-        ? await selectGroup(groupId).catch(() => null)
-        : null
-      const mine = findMyMember(group, currentUserId())
-      this.setData({
-        guestMode: false,
-        groupId: groupId || null,
-        canReview: !!(mine && canReview(mine.roleType))
-      })
+      if (groupId != null && groupId !== '') {
+        const group = await selectGroup(groupId).catch(() => null)
+        const role = resolveMyRoleType(group, currentUserId())
+        canReviewFlag = canReview(role)
+        if (!canReviewFlag) {
+          const mine = findMyMember(group, currentUserId())
+          canReviewFlag = !!(mine && canReview(mine.roleType))
+        }
+      } else {
+        // 汇总列表：待审且非本人的条目展示审核按钮，权限由后端校验
+        canReviewFlag = true
+      }
+      this.setData({ guestMode: false, canReview: canReviewFlag })
     } catch (e) {
       this.setData({ canReview: false })
     }
+
     this.loadList()
   },
 
@@ -73,7 +80,11 @@ Page({
     if (!isLoggedIn()) return
     wx.showNavigationBarLoading()
     try {
-      const raw = await listApply(this.data.applyStatus)
+      const params = { applyStatus: this.data.applyStatus }
+      if (this.data.groupId != null && this.data.groupId !== '') {
+        params.groupId = this.data.groupId
+      }
+      const raw = await listApply(params)
       this.setData({
         list: (raw || []).map((a) => ({
           ...a,

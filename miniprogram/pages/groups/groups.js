@@ -145,9 +145,7 @@ Page({
 
   goApplyList() {
     if (!requireLogin('查看申请前请先登录')) return
-    const groupId = this.data.currentGroupId || getApp().globalData.currentGroupId || ''
-    wx.navigateTo({
-      url: `/pages/group-apply/group-apply?groupId=${groupId}`
-    })
+    // 群组页入口：不传 groupId，由后端返回与当前用户相关的申请汇总
+    wx.navigateTo({ url: '/pages/group-apply/group-apply' })
   }
 })

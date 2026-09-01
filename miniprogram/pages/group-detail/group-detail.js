@@ -2,7 +2,8 @@ const {
   selectGroup,
   updateGroup,
   updateMemberName,
-  exitGroup
+  exitGroup,
+  listApply
 } = require('../../api/group')
 const { getProfile } = require('../../api/user')
 const { isLoggedIn, requireLogin } = require('../../utils/auth')
@@ -12,6 +13,7 @@ const {
   ROLE_TYPE,
   MEMBER_STATUS,
   GROUP_STATUS,
+  APPLY_STATUS,
   findMyMember,
   resolveMyRoleType,
   isOwner: checkIsOwner,
@@ -39,6 +41,7 @@ Page({
     myRoleType: null,
     isOwner: false,
     canManage: false,
+    hasPendingApply: false,
     loading: true,
     empty: false
   },
@@ -61,7 +64,8 @@ Page({
         loading: false,
         empty: true,
         isOwner: false,
-        canManage: false
+        canManage: false,
+        hasPendingApply: false
       })
       return
     }
@@ -89,7 +93,8 @@ Page({
           empty: true,
           loading: false,
           isOwner: false,
-          canManage: false
+          canManage: false,
+          hasPendingApply: false
         })
         return
       }
@@ -112,11 +117,39 @@ Page({
         empty: false,
         loading: false
       })
+
+      if (manage) {
+        this.refreshPendingApplyBadge(group.groupId)
+      } else {
+        this.setData({ hasPendingApply: false })
+      }
     } catch (err) {
       toastError(err, '加载失败')
-      this.setData({ loading: false, empty: true, isOwner: false, canManage: false })
+      this.setData({
+        loading: false,
+        empty: true,
+        isOwner: false,
+        canManage: false,
+        hasPendingApply: false
+      })
     } finally {
       wx.hideNavigationBarLoading()
+    }
+  },
+
+  async refreshPendingApplyBadge(groupId) {
+    if (groupId == null || groupId === '') {
+      this.setData({ hasPendingApply: false })
+      return
+    }
+    try {
+      const list = await listApply({
+        groupId,
+        applyStatus: APPLY_STATUS.PENDING_APPROVAL
+      })
+      this.setData({ hasPendingApply: (list || []).length > 0 })
+    } catch (e) {
+      this.setData({ hasPendingApply: false })
     }
   },
 
@@ -395,8 +428,9 @@ Page({
   },
 
   goApplyList() {
+    const groupId = this.data.groupId || (this.data.group && this.data.group.groupId) || ''
     wx.navigateTo({
-      url: `/pages/group-apply/group-apply?groupId=${this.data.groupId || ''}`
+      url: `/pages/group-apply/group-apply?groupId=${groupId}`
     })
   }
 })

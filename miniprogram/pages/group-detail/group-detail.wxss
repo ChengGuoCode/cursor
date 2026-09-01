@@ -115,6 +115,20 @@
   color: var(--color-expense);
 }
 
+.action-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.badge-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #e54d42;
+  flex-shrink: 0;
+}
+
 .action-arrow {
   color: var(--color-text-muted);
 }
