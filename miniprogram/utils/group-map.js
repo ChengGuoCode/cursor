@@ -69,12 +69,20 @@ function canReview(roleType) {
   return n === ROLE_TYPE.OWNER || n === ROLE_TYPE.ADMIN
 }
 
+function extractGroupMembers(dto) {
+  if (!dto || typeof dto !== 'object') return []
+  if (Array.isArray(dto.groupMembers)) return dto.groupMembers
+  if (Array.isArray(dto.members)) return dto.members
+  if (Array.isArray(dto.groupMemberList)) return dto.groupMemberList
+  return []
+}
+
 function normalizeGroup(dto) {
   if (!dto || typeof dto !== 'object') return null
   const groupId = dto.groupId != null ? dto.groupId : dto.id
   const groupName = dto.groupName || dto.name || ''
-  // 人数 = 后端 data.groupMembers 集合大小（含自己），不做本地兜底推算
-  const rawMembers = Array.isArray(dto.groupMembers) ? dto.groupMembers : []
+  // 人数 = 后端返回的成员集合大小（含自己）
+  const rawMembers = extractGroupMembers(dto)
   const members = rawMembers.map(normalizeMember).filter(Boolean)
   return {
     ...dto,

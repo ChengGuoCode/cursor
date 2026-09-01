@@ -4,13 +4,44 @@ const { toastError } = require('../../utils/request')
 const {
   findMyMember,
   roleTypeLabel,
-  GROUP_STATUS
+  GROUP_STATUS,
+  normalizeGroup
 } = require('../../utils/group-map')
 const { applyScopePreference } = require('../../utils/scope-store')
 
 function currentUserId() {
   const user = (getApp().globalData && getApp().globalData.userInfo) || {}
   return user.id || user.userId || ''
+}
+
+/**
+ * list 可能不带成员；select 会返回当前群完整 groupMembers。
+ * 把 select 的成员集合合并进对应列表项，人数用集合长度。
+ */
+function mergeCurrentGroupMembers(groups, current) {
+  if (!current || current.groupId == null) return groups || []
+  const list = groups || []
+  const cur = normalizeGroup(current) || current
+  const members = cur.groupMembers || []
+  const idx = list.findIndex((g) => String(g.groupId) === String(cur.groupId))
+
+  if (idx < 0) {
+    return [cur, ...list]
+  }
+
+  if (!members.length && (list[idx].groupMembers || []).length) {
+    return list
+  }
+
+  const next = list.slice()
+  next[idx] = {
+    ...list[idx],
+    ...cur,
+    groupMembers: members,
+    memberCount: members.length,
+    inviteCode: cur.inviteCode || list[idx].inviteCode
+  }
+  return next
 }
 
 Page({
@@ -40,9 +71,9 @@ Page({
         selectGroup().catch(() => null)
       ])
       const uid = currentUserId()
-      const groups = (list || []).filter((g) => Number(g.status) !== GROUP_STATUS.DISSOLVED)
+      let groups = (list || []).filter((g) => Number(g.status) !== GROUP_STATUS.DISSOLVED)
+      groups = mergeCurrentGroupMembers(groups, current)
 
-      // 已加入群组时，概览/账单默认切到群组
       if (current && current.groupId != null) {
         getApp().globalData.currentGroupId = current.groupId
       }
@@ -53,8 +84,10 @@ Page({
         currentGroupId: scope.currentGroupId,
         groups: groups.map((g) => {
           const mine = findMyMember(g, uid)
+          const memberCount = Array.isArray(g.groupMembers) ? g.groupMembers.length : 0
           return {
             ...g,
+            memberCount,
             roleLabel: mine ? roleTypeLabel(mine.roleType) : '',
             isCurrent:
               scope.currentGroupId != null &&
