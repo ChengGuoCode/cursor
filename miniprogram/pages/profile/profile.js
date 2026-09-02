@@ -235,10 +235,11 @@ Page({
     try {
       const user = await updateProfile({ nickname })
       this.setData({
-        ...applyUserToView(user && user.nickname != null ? user : {
-          ...this.data.user,
-          nickname
-        }),
+        ...applyUserToView(
+          user && user.nickname != null
+            ? user
+            : { ...this.data.user, nickname }
+        ),
         showNicknameEditor: false,
         draftNickname: ''
       })
