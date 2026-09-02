@@ -27,7 +27,7 @@ Page({
       this.getTabBar().setData({ selected: 4 })
     }
     const app = getApp()
-    this.setData({ useMock: app.globalData.useMock !== false })
+    this.setData({ useMock: app.globalData.useMock === true })
     this.loadProfile()
   },
 
