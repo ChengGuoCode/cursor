@@ -43,11 +43,16 @@ function normalizeCategory(item) {
 }
 
 function normalizeAccount(item) {
+  if (!item || typeof item !== 'object') return null
+  const accountId = item.accountId != null ? item.accountId : item.id
+  const accountName = item.accountName || item.name || ''
+  if (accountId == null || accountId === '') return null
+  const idNum = Number(accountId)
   return {
-    accountId: Number(item.accountId),
-    accountName: item.accountName || '',
-    id: Number(item.accountId),
-    name: item.accountName || ''
+    accountId: Number.isFinite(idNum) ? idNum : accountId,
+    accountName,
+    id: Number.isFinite(idNum) ? idNum : accountId,
+    name: accountName
   }
 }
 
@@ -63,7 +68,7 @@ async function loadConfig(force = false) {
   cache.loading = Promise.all([getCategories(), getAccounts()])
     .then(([categories, accounts]) => {
       cache.categories = (categories || []).map(normalizeCategory)
-      cache.accounts = (accounts || []).map(normalizeAccount)
+      cache.accounts = (accounts || []).map(normalizeAccount).filter(Boolean)
       cache.loading = null
       return {
         categories: cache.categories,

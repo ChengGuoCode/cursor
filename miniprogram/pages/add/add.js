@@ -45,9 +45,17 @@ Page({
 
   async bootstrap() {
     try {
-      await loadConfig()
+      let { accounts } = await loadConfig()
+      if (!(accounts && accounts.length)) {
+        // 缓存为空时强制再拉一次（避免启动预拉失败后一直空）
+        const refreshed = await loadConfig(true)
+        accounts = refreshed.accounts
+      }
       this.refreshCategories()
       this.refreshAccounts()
+      if (!(accounts && accounts.length)) {
+        wx.showToast({ title: '暂无账户配置', icon: 'none' })
+      }
     } catch (e) {
       console.warn(e)
       wx.showToast({ title: '枚举加载失败', icon: 'none' })
