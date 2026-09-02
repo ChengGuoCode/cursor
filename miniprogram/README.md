@@ -102,7 +102,7 @@
 | GET | `/api/user/login` | code 换 token |
 | GET | `/api/user/profile` | 用户资料 |
 | POST | `/api/user/update` | 仅更新昵称（`{ nickname }`） |
-| POST | `/api/user/avatar` | 上传并更新头像（multipart `file`），返回 `/avatar/abc.jpg`；展示拼 `apiBaseUrl` |
+| POST | `/api/user/avatar` | 上传并更新头像（multipart `file`），返回 `/avatar/abc.jpg`；展示为 `{apiBaseUrl}/api/avatar/abc.jpg` |
 | GET/PUT | `/api/user/budget` | 月度预算（PUT body: `{ budget }`） |
 | GET | `/api/bill/overview?scopeType=&groupId=&periodType=&month=` | 仪表盘（群组模式传 groupId） |
 | POST | `/api/bill/page` | 账单分页 |

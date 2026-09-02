@@ -59,15 +59,19 @@ function buildUrl(path) {
 
 /**
  * 静态资源 / 头像展示地址。
- * 后端常存相对路径如 /avatar/abc.jpg，展示时拼 apiBaseUrl。
- * 已是 http(s) 或本地临时路径（wxfile:）则原样返回。
+ * 后端存相对路径如 /avatar/abc.jpg，展示为 {apiBaseUrl}/api/avatar/abc.jpg。
+ * 已带 /api 前缀、http(s)、本地临时路径则按原样拼接或返回。
  */
 function resolveAssetUrl(path) {
   const raw = String(path || '').trim()
   if (!raw) return ''
   if (/^https?:\/\//i.test(raw)) return raw
   if (/^(wxfile|file|blob):/i.test(raw)) return raw
-  return buildUrl(raw)
+  let rel = raw.startsWith('/') ? raw : `/${raw}`
+  if (!rel.startsWith('/api/') && rel !== '/api') {
+    rel = `/api${rel}`
+  }
+  return buildUrl(rel)
 }
 
 /**
