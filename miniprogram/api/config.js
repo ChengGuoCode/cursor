@@ -33,7 +33,7 @@ function asList(data) {
   return []
 }
 
-/** GET /config/category → ResDTO<List<CategoryDTO>> */
+/** GET /api/config/category → ResDTO<List<CategoryDTO>> */
 function getCategories() {
   if (shouldUseMock()) {
     return Promise.resolve(mockCategories.map((c) => ({ ...c })))
@@ -42,7 +42,7 @@ function getCategories() {
 }
 
 /**
- * 账户枚举 — GET /config/account → ResDTO<List<AccountDTO>>
+ * 账户枚举 — GET /api/config/account → ResDTO<List<AccountDTO>>
  * 记账页账户下拉、账单筛选都读这份数据
  */
 function getAccounts() {

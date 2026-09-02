@@ -78,7 +78,7 @@
 - `scopeType=1`：不传 `groupId`；`scopeType=2`：传用户所属某个群组的 `groupId`
 - **已加入群组时**：概览/账单默认 `scopeType=2`（群组）；用户手动切个人后本会话保持个人；无群组则回落个人
 - 无所属群组时，切换按钮置灰（不可切到群组）
-- 枚举：`GET /config/category`、`GET /config/account`
+- 枚举：`GET /api/config/category`、`GET /api/config/account`
 - 账单页常用筛选（月/收支）常显；账户/类目收在「更多筛选」折叠区
 - **记账创建** body 对齐 `TransactionReqDTO`：`billType`、`categoryCode`、`accountId`、`amount`、`remark`；选中群组时传 `groupId`，**不传 `scopeType`**
 
