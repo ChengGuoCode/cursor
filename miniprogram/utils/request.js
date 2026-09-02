@@ -9,6 +9,7 @@
  */
 
 const { getToken, clearSession, handleUnauthorized } = require('./auth')
+const { getEnv } = require('./env')
 
 /** 服务端错误提示展示时长（ms） */
 const SERVER_ERROR_TOAST_MS = 2800
@@ -22,10 +23,15 @@ function getAppSafe() {
 }
 
 function buildUrl(path) {
-  const app = getAppSafe()
-  const base = (app && app.globalData && app.globalData.apiBaseUrl) || ''
   if (/^https?:\/\//.test(path)) return path
-  return `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
+  const { apiBaseUrl } = getEnv()
+  const base = (apiBaseUrl || '').replace(/\/$/, '')
+  const rel = String(path || '').replace(/^\//, '')
+  if (!base) {
+    // 无 base 时不要把相对路径交给 wx.request（会报 invalid url）
+    return rel ? `/${rel}` : ''
+  }
+  return `${base}/${rel}`
 }
 
 /**
@@ -99,8 +105,17 @@ function request(options = {}) {
       if (token) headers.Authorization = `Bearer ${token}`
     }
 
+    const fullUrl = buildUrl(url)
+    // 微信要求绝对地址；相对路径会直接 fail: invalid url
+    if (!/^https?:\/\//.test(fullUrl)) {
+      const message = '接口地址未配置'
+      if (!silent) showServerError(message)
+      reject(makeError(message, 'INVALID_URL', { handled: true }))
+      return
+    }
+
     wx.request({
-      url: buildUrl(url),
+      url: fullUrl,
       method,
       data,
       header: headers,
@@ -182,12 +197,10 @@ function post(url, data, options = {}) {
 
 /**
  * 仅当显式 useMock === true 时走 Mock。
- * 注意：不可在 getApp 未就绪时默认 true，否则会把 mockAccounts（5 项）灌进配置缓存，
- * 之后即使改成真实接口也会一直显示这 5 个账户。
+ * 读 env 模块，避免 getApp 未就绪时误判。
  */
 function shouldUseMock() {
-  const app = getAppSafe()
-  return !!(app && app.globalData && app.globalData.useMock === true)
+  return getEnv().useMock === true
 }
 
 /** 页面 catch 用：request 已提示过的错误不再重复 toast */

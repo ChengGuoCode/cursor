@@ -2,6 +2,7 @@ const { getProfile, wxLogin, logout } = require('../../api/user')
 const { isLoggedIn, clearSession } = require('../../utils/auth')
 const { shouldUseMock, toastError } = require('../../utils/request')
 const { clearConfigCache } = require('../../utils/config-store')
+const { setEnv } = require('../../utils/env')
 
 function applyUserToView(user) {
   const safe = user || {}
@@ -142,6 +143,7 @@ Page({
   onToggleMock() {
     const app = getApp()
     app.globalData.useMock = !app.globalData.useMock
+    setEnv({ useMock: app.globalData.useMock })
     clearSession()
     // 清枚举缓存，避免 Mock 的 5 个账户残留到真实接口
     clearConfigCache()

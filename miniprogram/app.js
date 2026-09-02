@@ -1,6 +1,7 @@
 const { getProfile } = require('./api/user')
 const { getToken, clearSession, isLoggedIn } = require('./utils/auth')
 const { shouldUseMock } = require('./utils/request')
+const { setEnv } = require('./utils/env')
 
 App({
   globalData: {
@@ -19,12 +20,20 @@ App({
   },
 
   onLaunch() {
+    // 尽早同步到 env，供 request.buildUrl 在 getApp 竞态下仍能拼出绝对地址
+    setEnv({
+      useMock: this.globalData.useMock,
+      apiBaseUrl: this.globalData.apiBaseUrl
+    })
     this.bootstrapUser()
     // 预拉类目/账户枚举（失败不影响启动）；先清缓存避免热重载残留 Mock 数据
     try {
       const { loadConfig, clearConfigCache } = require('./utils/config-store')
       clearConfigCache()
-      loadConfig().catch(() => {})
+      // 延后到下一拍，减少与首屏并行时的无效失败提示
+      setTimeout(() => {
+        loadConfig().catch(() => {})
+      }, 0)
     } catch (e) {
       /* ignore */
     }
