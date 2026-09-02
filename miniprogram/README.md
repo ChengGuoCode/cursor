@@ -10,7 +10,7 @@
 | 2 账单 | `pages/bills` | 按日分组明细，支持月/类型/关键词筛选 |
 | 3 记账 | `pages/add` | 中间凸起入口，快速记一笔 |
 | 4 群组 | `pages/groups` | 合租/出游 AA，结算建议 |
-| 5 我的 | `pages/profile` | 用户信息、预算/分类/账户入口、登录 |
+| 5 我的 | `pages/profile` | 用户资料（头像/昵称）、月度预算入口、登录 |
 
 子页面：`bill-detail`、`group-detail`。
 
@@ -100,7 +100,9 @@
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/user/login` | code 换 token |
-| GET/PUT | `/api/user/profile` | 用户资料 |
+| GET/PUT | `/api/user/profile` | 用户资料（昵称、头像等） |
+| POST | `/api/user/avatar` | 上传头像（multipart `file`），返回 URL |
+| GET/PUT | `/api/user/budget` | 月度预算（PUT body: `{ budget }`） |
 | GET | `/api/bill/overview?scopeType=&groupId=&periodType=&month=` | 仪表盘（群组模式传 groupId） |
 | POST | `/api/bill/page` | 账单分页 |
 | GET | `/api/group/list` | 群组列表 |
@@ -131,5 +133,5 @@ miniprogram/
   utils/                   # request / auth / format / constants / mock
   pages/
     dashboard | bills | add | groups | profile
-    bill-detail | group-detail
+    budget | bill-detail | group-detail
 ```

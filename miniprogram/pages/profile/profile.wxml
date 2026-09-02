@@ -1,52 +1,132 @@
 <view class="page profile-page">
-  <view class="profile-hero soft-panel">
-    <view class="avatar">
-      <image wx:if="{{avatarUrl}}" class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
-      <text wx:else>{{avatarText}}</text>
-    </view>
+  <!-- 已登录：可编辑资料头图 -->
+  <view class="profile-hero soft-panel" wx:if="{{loggedIn}}">
+    <button
+      class="avatar-btn"
+      open-type="chooseAvatar"
+      bindchooseavatar="onChooseAvatar"
+      disabled="{{savingProfile}}"
+    >
+      <view class="avatar">
+        <image wx:if="{{avatarUrl}}" class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
+        <text wx:else>{{avatarText}}</text>
+        <view class="avatar-badge">换</view>
+      </view>
+    </button>
+
     <view class="profile-info">
-      <view class="nickname">{{user.nickname || '未登录'}}</view>
-      <view class="motto">{{user.motto || '登录后同步账单与群组'}}</view>
+      <view class="nickname-row" bindtap="onEditNickname">
+        <text class="nickname">{{user.nickname || '点击设置昵称'}}</text>
+        <text class="edit-tag">编辑</text>
+      </view>
+      <view class="motto">{{user.motto || '记清楚每一笔，花明白每一天'}}</view>
       <view class="phone" wx:if="{{user.phoneMask}}">{{user.phoneMask}}</view>
     </view>
   </view>
 
-  <view class="section soft-panel menu-panel">
-    <view class="menu-item" bindtap="onExport">
-      <text>导出账单</text>
-      <text class="arrow">›</text>
+  <!-- 未登录 -->
+  <view class="profile-hero soft-panel guest-hero" wx:else>
+    <view class="avatar guest-avatar">
+      <text>{{avatarText}}</text>
     </view>
-    <view class="menu-item" bindtap="onBudget">
-      <text>月度预算</text>
-      <text class="arrow">›</text>
+    <view class="profile-info">
+      <view class="nickname">未登录</view>
+      <view class="motto">登录后同步账单、预算与群组</view>
     </view>
-    <view class="menu-item" bindtap="onCategories">
-      <text>分类管理</text>
-      <text class="arrow">›</text>
+  </view>
+
+  <!-- 预算速览 -->
+  <view class="section soft-panel budget-card" bindtap="onBudget" wx:if="{{loggedIn}}">
+    <view class="budget-card-top">
+      <view>
+        <view class="budget-kicker">{{monthLabel}}</view>
+        <view class="budget-title">月度预算</view>
+      </view>
+      <text class="budget-action">去设置 ›</text>
     </view>
-    <view class="menu-item" bindtap="onAccounts">
-      <text>账户管理</text>
-      <text class="arrow">›</text>
+    <view class="budget-amount-row" wx:if="{{budget > 0}}">
+      <text class="amount amount-md">¥{{budgetText}}</text>
+      <text class="budget-used">已用 ¥{{spentText}}</text>
+    </view>
+    <view class="budget-empty" wx:else>尚未设置预算，点此设定本月支出上限</view>
+    <view class="budget-track" wx:if="{{budget > 0}}">
+      <view class="budget-fill" style="width: {{budgetPercent}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 未登录引导 -->
+  <view class="section soft-panel guide-card" wx:else>
+    <view class="guide-title">登录后可使用</view>
+    <view class="guide-list">
+      <view class="guide-item">
+        <text class="guide-dot">01</text>
+        <text>云端同步账单与群组记账</text>
+      </view>
+      <view class="guide-item">
+        <text class="guide-dot">02</text>
+        <text>设置月度预算，概览跟踪进度</text>
+      </view>
+      <view class="guide-item">
+        <text class="guide-dot">03</text>
+        <text>自定义头像与昵称</text>
+      </view>
     </view>
   </view>
 
   <view class="section soft-panel menu-panel">
+    <view class="menu-item" bindtap="onBudget" wx:if="{{loggedIn}}">
+      <view class="menu-left">
+        <text class="menu-icon">◎</text>
+        <text>月度预算</text>
+      </view>
+      <view class="menu-right">
+        <text class="menu-value">{{budget > 0 ? '¥' + budgetText : '未设置'}}</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
     <view class="menu-item" bindtap="onAbout">
-      <text>关于轻记账</text>
+      <view class="menu-left">
+        <text class="menu-icon">ⓘ</text>
+        <text>关于轻记账</text>
+      </view>
       <text class="arrow">›</text>
     </view>
-    <view class="menu-item" bindtap="onToggleMock">
-      <text>数据模式</text>
-      <text class="menu-value">{{useMock ? '本地 Mock' : '真实接口'}}</text>
+  </view>
+
+  <!-- 昵称编辑层 -->
+  <view class="nickname-mask" wx:if="{{showNicknameEditor}}" catchtouchmove="noop">
+    <view class="nickname-sheet soft-panel">
+      <view class="sheet-title">编辑昵称</view>
+      <input
+        class="sheet-input"
+        type="nickname"
+        maxlength="20"
+        placeholder="输入昵称"
+        value="{{draftNickname}}"
+        focus="{{showNicknameEditor}}"
+        bindinput="onDraftNicknameInput"
+        bindblur="onDraftNicknameInput"
+        confirm-type="done"
+        bindconfirm="onSaveNickname"
+      />
+      <view class="sheet-actions">
+        <button class="btn-ghost sheet-btn" bindtap="onCancelNickname">取消</button>
+        <button
+          class="btn-primary sheet-btn"
+          loading="{{savingProfile}}"
+          disabled="{{savingProfile}}"
+          bindtap="onSaveNickname"
+        >保存</button>
+      </view>
     </view>
   </view>
 
   <button
     class="btn-primary login-btn"
     loading="{{loggingIn}}"
-    disabled="{{loggingIn}}"
+    disabled="{{loggingIn || savingProfile}}"
     bindtap="onLoginOrLogout"
   >
-    {{user.id ? '退出登录' : '微信登录'}}
+    {{loggedIn ? '退出登录' : '微信登录'}}
   </button>
 </view>

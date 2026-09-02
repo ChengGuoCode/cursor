@@ -243,6 +243,7 @@ module.exports = {
   shouldUseMock,
   getEnv,
   setEnv,
+  buildUrl,
   getToken,
   extractErrorMessage,
   showServerError,

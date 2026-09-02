@@ -1,4 +1,4 @@
-const { request, shouldUseMock } = require('../utils/request')
+const { request, shouldUseMock, buildUrl } = require('../utils/request')
 const { mockUser } = require('../utils/mock')
 const {
   applyLoginSession,
@@ -7,13 +7,16 @@ const {
   normalizeUser
 } = require('../utils/auth')
 
+/** Mock 月度预算（仅本地内存） */
+let mockMonthlyBudget = 5000
+
 /** 获取当前用户资料 — GET /api/user/profile → ResDTO<User> */
 function getProfile() {
   if (shouldUseMock()) {
     if (!getToken()) {
       return Promise.reject(Object.assign(new Error('未登录'), { code: 401 }))
     }
-    return Promise.resolve({ ...mockUser })
+    return Promise.resolve({ ...mockUser, budget: mockMonthlyBudget })
   }
   return request({
     url: '/api/user/profile',
@@ -21,14 +24,138 @@ function getProfile() {
   }).then((data) => normalizeUser(data) || data)
 }
 
-/** 更新用户资料 — PUT /api/user/profile */
+/** 更新用户资料 — PUT /api/user/profile（昵称 / 头像 URL 等） */
 function updateProfile(payload) {
   if (shouldUseMock()) {
-    return Promise.resolve({ ...mockUser, ...payload })
+    Object.assign(mockUser, payload || {})
+    return Promise.resolve({ ...mockUser, budget: mockMonthlyBudget })
   }
   return request({ url: '/api/user/profile', method: 'PUT', data: payload }).then(
     (data) => normalizeUser(data) || data
   )
+}
+
+/**
+ * 上传头像 — POST /api/user/avatar（multipart file）
+ * 成功返回头像 URL 字符串（兼容 ResDTO.data 为 string 或 { url/avatarUrl }）
+ */
+function uploadAvatar(filePath) {
+  if (shouldUseMock()) {
+    return Promise.resolve(filePath || '')
+  }
+
+  return new Promise((resolve, reject) => {
+    const token = getToken()
+    wx.uploadFile({
+      url: buildUrl('/api/user/avatar'),
+      filePath,
+      name: 'file',
+      header: token ? { Authorization: `Bearer ${token}` } : {},
+      success(res) {
+        let body = res.data
+        try {
+          body = typeof body === 'string' ? JSON.parse(body) : body
+        } catch (e) {
+          /* 纯字符串 URL */
+        }
+        if (res.statusCode === 401) {
+          reject(Object.assign(new Error('未登录或登录已过期'), { code: 401 }))
+          return
+        }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          const tip =
+            (body && (body.msg || body.message)) || `上传失败（${res.statusCode}）`
+          reject(new Error(tip))
+          return
+        }
+        if (body && typeof body === 'object' && 'code' in body) {
+          if (body.code === 0 || body.code === 200) {
+            const data = body.data
+            if (typeof data === 'string') {
+              resolve(data)
+              return
+            }
+            if (data && typeof data === 'object') {
+              resolve(data.url || data.avatarUrl || data.avatar || '')
+              return
+            }
+            resolve('')
+            return
+          }
+          reject(new Error(body.msg || body.message || '上传失败'))
+          return
+        }
+        if (typeof body === 'string' && body) {
+          resolve(body)
+          return
+        }
+        resolve(
+          (body && (body.url || body.avatarUrl || body.avatar)) || filePath || ''
+        )
+      },
+      fail(err) {
+        reject(new Error((err && err.errMsg) || '头像上传失败'))
+      }
+    })
+  })
+}
+
+/**
+ * 获取月度预算 — GET /api/user/budget
+ * data 可为 number，或 { budget|amount|monthlyBudget }
+ */
+function getBudget() {
+  if (shouldUseMock()) {
+    return Promise.resolve({ budget: mockMonthlyBudget })
+  }
+  return request({ url: '/api/user/budget', method: 'GET' }).then((data) => {
+    if (typeof data === 'number') return { budget: data }
+    if (data && typeof data === 'object') {
+      return {
+        budget: Number(
+          data.budget != null
+            ? data.budget
+            : data.amount != null
+              ? data.amount
+              : data.monthlyBudget != null
+                ? data.monthlyBudget
+                : 0
+        )
+      }
+    }
+    return { budget: 0 }
+  })
+}
+
+/**
+ * 设置月度预算 — PUT /api/user/budget
+ * body: { budget: number }
+ */
+function updateBudget(budget) {
+  const amount = Math.max(0, Number(budget) || 0)
+  if (shouldUseMock()) {
+    mockMonthlyBudget = amount
+    return Promise.resolve({ budget: amount })
+  }
+  return request({
+    url: '/api/user/budget',
+    method: 'PUT',
+    data: { budget: amount }
+  }).then((data) => {
+    if (typeof data === 'number') return { budget: data }
+    if (data && typeof data === 'object') {
+      return {
+        budget: Number(
+          data.budget != null
+            ? data.budget
+            : data.amount != null
+              ? data.amount
+              : amount
+        )
+      }
+    }
+    return { budget: amount }
+  })
 }
 
 /**
@@ -74,6 +201,9 @@ function logout() {
 module.exports = {
   getProfile,
   updateProfile,
+  uploadAvatar,
+  getBudget,
+  updateBudget,
   wxLogin,
   logout
 }
