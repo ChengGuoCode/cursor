@@ -38,7 +38,7 @@ function getCategories() {
   if (shouldUseMock()) {
     return Promise.resolve(mockCategories.map((c) => ({ ...c })))
   }
-  return request({ url: '/config/category', method: 'GET' }).then(asList)
+  return request({ url: '/api/config/category', method: 'GET' }).then(asList)
 }
 
 /**
@@ -49,7 +49,7 @@ function getAccounts() {
   if (shouldUseMock()) {
     return Promise.resolve(mockAccounts.map((a) => ({ ...a })))
   }
-  return request({ url: '/config/account', method: 'GET' }).then(asList)
+  return request({ url: '/api/config/account', method: 'GET' }).then(asList)
 }
 
 module.exports = {
