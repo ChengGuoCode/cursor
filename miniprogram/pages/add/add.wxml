@@ -75,16 +75,6 @@
     </view>
   </view>
 
-  <view class="keypad soft-panel">
-    <view
-      class="key"
-      wx:for="{{keys}}"
-      wx:key="*this"
-      data-key="{{item}}"
-      bindtap="onKeyTap"
-    >{{item}}</view>
-  </view>
-
   <view class="submit-bar">
     <button class="btn-primary submit-btn" loading="{{submitting}}" bindtap="onSubmit">保存</button>
   </view>
