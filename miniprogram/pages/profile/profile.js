@@ -48,8 +48,7 @@ Page({
     draftNickname: '',
     monthLabel: '',
     budget: 0,
-    budgetText: '0.00',
-    budgetPercent: 0
+    budgetText: '0.00'
   },
 
   onShow() {
