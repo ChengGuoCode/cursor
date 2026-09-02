@@ -182,21 +182,18 @@ Page({
     const tempPath = e.detail && e.detail.avatarUrl
     if (!tempPath) return
 
-    // chooseAvatar 得到本地临时文件 → 上传换相对路径 → update 落库
+    // /api/user/avatar 上传并已更新头像，不必再调 /update
     this.setData({ savingProfile: true })
     try {
       const avatarPath = await uploadAvatar(tempPath)
       if (!avatarPath) {
         throw new Error('头像上传未返回路径')
       }
-      // 落库保存相对路径，如 /avatar/abc.jpg
-      const user = await updateProfile({ avatarUrl: avatarPath })
       this.setData(
-        applyUserToView(
-          user && (user.nickname != null || user.avatarUrl)
-            ? user
-            : { ...this.data.user, avatarUrl: avatarPath }
-        )
+        applyUserToView({
+          ...this.data.user,
+          avatarUrl: avatarPath
+        })
       )
       wx.showToast({ title: '头像已更新', icon: 'success' })
     } catch (err) {

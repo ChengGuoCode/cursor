@@ -24,30 +24,28 @@ function getProfile() {
   }).then((data) => normalizeUser(data) || data)
 }
 
-/** 更新用户资料 — POST /api/user/update，body: UserInfoDTO（常用 nickname、avatarUrl） */
+/** 更新昵称 — POST /api/user/update，body: { nickname }（头像走 /avatar 上传接口） */
 function updateProfile(payload) {
   if (shouldUseMock()) {
-    Object.assign(mockUser, payload || {})
+    if (payload && payload.nickname != null) mockUser.nickname = payload.nickname
     return Promise.resolve({ ...mockUser, budget: mockMonthlyBudget })
   }
   const body = {}
-  if (payload) {
-    if (payload.nickname != null) body.nickname = payload.nickname
-    if (payload.avatarUrl != null) body.avatarUrl = payload.avatarUrl
-    if (payload.userId != null) body.userId = payload.userId
-  }
+  if (payload && payload.nickname != null) body.nickname = payload.nickname
   return request({ url: '/api/user/update', method: 'POST', data: body }).then(
     (data) => normalizeUser(data) || data
   )
 }
 
 /**
- * 上传头像 — POST /api/user/avatar，multipart 字段 file
- * ResDTO.data 为相对路径，如 /avatar/abc.jpg（展示时再拼 apiBaseUrl）
+ * 上传并更新头像 — POST /api/user/avatar，multipart 字段 file
+ * 后端已落库；ResDTO.data 为相对路径如 /avatar/abc.jpg（展示时拼 apiBaseUrl）
+ * 无需再调 /api/user/update
  */
 function uploadAvatar(filePath) {
   if (shouldUseMock()) {
-    return Promise.resolve('/avatar/mock.jpg')
+    mockUser.avatarUrl = '/avatar/mock.jpg'
+    return Promise.resolve(mockUser.avatarUrl)
   }
 
   return new Promise((resolve, reject) => {
