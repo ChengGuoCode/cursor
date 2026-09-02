@@ -58,6 +58,19 @@ function buildUrl(path) {
 }
 
 /**
+ * 静态资源 / 头像展示地址。
+ * 后端常存相对路径如 /avatar/abc.jpg，展示时拼 apiBaseUrl。
+ * 已是 http(s) 或本地临时路径（wxfile:）则原样返回。
+ */
+function resolveAssetUrl(path) {
+  const raw = String(path || '').trim()
+  if (!raw) return ''
+  if (/^https?:\/\//i.test(raw)) return raw
+  if (/^(wxfile|file|blob):/i.test(raw)) return raw
+  return buildUrl(raw)
+}
+
+/**
  * 从响应 body 提取文案。
  * GlobalExceptionHandler 直接 body(ex.getMessage())，多为纯字符串。
  */
@@ -244,6 +257,7 @@ module.exports = {
   getEnv,
   setEnv,
   buildUrl,
+  resolveAssetUrl,
   getToken,
   extractErrorMessage,
   showServerError,

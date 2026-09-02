@@ -8,18 +8,20 @@ const {
 } = require('../../api/user')
 const { getOverview } = require('../../api/bill')
 const { isLoggedIn, clearSession, requireLogin } = require('../../utils/auth')
-const { shouldUseMock, toastError } = require('../../utils/request')
+const { shouldUseMock, toastError, resolveAssetUrl } = require('../../utils/request')
 const { formatMoney, formatDate, formatMonthLabel } = require('../../utils/format')
 const { SCOPE_TYPE } = require('../../utils/bill-map')
 
 function applyUserToView(user) {
   const safe = user || {}
   getApp().globalData.userInfo = safe
+  const rawAvatar = safe.avatarUrl || ''
   return {
     user: safe,
     loggedIn: true,
     avatarText: (safe.nickname || '记').slice(0, 1),
-    avatarUrl: safe.avatarUrl || ''
+    // 展示用：相对路径 /avatar/xxx.jpg → apiBaseUrl + path
+    avatarUrl: resolveAssetUrl(rawAvatar)
   }
 }
 
@@ -180,19 +182,20 @@ Page({
     const tempPath = e.detail && e.detail.avatarUrl
     if (!tempPath) return
 
-    // chooseAvatar / 相册 / 拍照拿到的都是本地临时路径，不能直接当 avatarUrl 落库
+    // chooseAvatar 得到本地临时文件 → 上传换相对路径 → update 落库
     this.setData({ savingProfile: true })
     try {
-      const avatarUrl = await uploadAvatar(tempPath)
-      if (!avatarUrl || !/^https?:\/\//.test(avatarUrl)) {
-        throw new Error('头像上传未返回可用 URL，请先提供上传接口')
+      const avatarPath = await uploadAvatar(tempPath)
+      if (!avatarPath) {
+        throw new Error('头像上传未返回路径')
       }
-      const user = await updateProfile({ avatarUrl })
+      // 落库保存相对路径，如 /avatar/abc.jpg
+      const user = await updateProfile({ avatarUrl: avatarPath })
       this.setData(
         applyUserToView(
           user && (user.nickname != null || user.avatarUrl)
             ? user
-            : { ...this.data.user, avatarUrl }
+            : { ...this.data.user, avatarUrl: avatarPath }
         )
       )
       wx.showToast({ title: '头像已更新', icon: 'success' })

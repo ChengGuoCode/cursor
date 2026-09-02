@@ -42,13 +42,12 @@ function updateProfile(payload) {
 }
 
 /**
- * 上传头像文件，换取可持久访问的 URL。
- * 当前后端若尚未提供上传接口，前端无法把相册/拍照/微信头像的本地临时路径写入 UserInfoDTO.avatarUrl。
- * 约定：POST /api/user/avatar，multipart 字段名 file，ResDTO.data 为 url 字符串或 { url|avatarUrl }
+ * 上传头像 — POST /api/user/avatar，multipart 字段 file
+ * ResDTO.data 为相对路径，如 /avatar/abc.jpg（展示时再拼 apiBaseUrl）
  */
 function uploadAvatar(filePath) {
   if (shouldUseMock()) {
-    return Promise.resolve(filePath || '')
+    return Promise.resolve('/avatar/mock.jpg')
   }
 
   return new Promise((resolve, reject) => {
@@ -63,7 +62,7 @@ function uploadAvatar(filePath) {
         try {
           body = typeof body === 'string' ? JSON.parse(body) : body
         } catch (e) {
-          /* 纯字符串 URL */
+          /* 纯字符串路径 */
         }
         if (res.statusCode === 401) {
           reject(Object.assign(new Error('未登录或登录已过期'), { code: 401 }))
