@@ -3,8 +3,7 @@ const {
   wxLogin,
   logout,
   updateProfile,
-  uploadAvatar,
-  getBudget
+  uploadAvatar
 } = require('../../api/user')
 const { getOverview } = require('../../api/bill')
 const { isLoggedIn, clearSession, requireLogin } = require('../../utils/auth')
@@ -86,22 +85,13 @@ Page({
   async loadBudgetSummary() {
     const month = formatDate(new Date(), 'YYYY-MM')
     try {
-      const [budgetRes, overview] = await Promise.all([
-        getBudget().catch(() => null),
-        getOverview({
-          month,
-          scopeType: SCOPE_TYPE.PERSONAL,
-          periodType: 1
-        }).catch(() => null)
-      ])
+      const overview = await getOverview({
+        month,
+        scopeType: SCOPE_TYPE.PERSONAL,
+        periodType: 1
+      }).catch(() => null)
 
-      let budget = 0
-      if (budgetRes && budgetRes.budget != null) {
-        budget = Number(budgetRes.budget) || 0
-      } else if (overview && overview.budget != null) {
-        budget = Number(overview.budget) || 0
-      }
-
+      const budget = Number((overview && overview.budget) || 0)
       const spent = Number((overview && overview.expense) || 0)
       const budgetPercent =
         budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : 0

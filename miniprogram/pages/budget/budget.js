@@ -1,14 +1,19 @@
-const { getBudget, updateBudget } = require('../../api/user')
-const { getOverview } = require('../../api/bill')
+const { setBudget, getOverview, BUDGET_PERIOD_TYPE } = require('../../api/bill')
 const { toastError } = require('../../utils/request')
 const { requireLogin } = require('../../utils/auth')
 const { formatMoney, formatDate, formatMonthLabel } = require('../../utils/format')
-const { SCOPE_TYPE } = require('../../utils/bill-map')
+const { SCOPE_TYPE, isGroupScope, normalizeScopeType } = require('../../utils/bill-map')
 
 Page({
   data: {
+    scopeType: SCOPE_TYPE.PERSONAL,
+    groupId: null,
+    groupName: '',
+    isGroup: false,
     month: '',
     monthLabel: '',
+    heroTitle: '本月支出预算',
+    heroDesc: '设好上限后，概览页会展示本月已用进度',
     budgetInput: '',
     budgetNum: 0,
     spent: 0,
@@ -19,12 +24,46 @@ Page({
     saving: false
   },
 
+  onLoad(query = {}) {
+    const scopeType = normalizeScopeType(query.scopeType)
+    const groupId =
+      query.groupId != null && query.groupId !== '' ? query.groupId : null
+    let groupName = ''
+    try {
+      groupName = query.groupName ? decodeURIComponent(query.groupName) : ''
+    } catch (e) {
+      groupName = query.groupName || ''
+    }
+    const isGroup = isGroupScope(scopeType) && groupId != null
+
+    this.setData({
+      scopeType: isGroup ? SCOPE_TYPE.GROUP : SCOPE_TYPE.PERSONAL,
+      groupId: isGroup ? groupId : null,
+      groupName,
+      isGroup,
+      heroTitle: isGroup ? '群组本月预算' : '本月支出预算',
+      heroDesc: isGroup
+        ? '群主与管理员可设定本群月度支出上限'
+        : '设好上限后，概览页会展示本月已用进度'
+    })
+
+    wx.setNavigationBarTitle({
+      title: isGroup ? '群组月度预算' : '月度预算'
+    })
+  },
+
   onShow() {
     if (!requireLogin('设置预算前请先登录')) return
+    if (this.data.isGroup && (this.data.groupId == null || this.data.groupId === '')) {
+      wx.showToast({ title: '缺少群组信息', icon: 'none' })
+      return
+    }
     const month = formatDate(new Date(), 'YYYY-MM')
     this.setData({
       month,
-      monthLabel: formatMonthLabel(month),
+      monthLabel: this.data.isGroup
+        ? `${formatMonthLabel(month)}${this.data.groupName ? ` · ${this.data.groupName}` : ''}`
+        : formatMonthLabel(month),
       inputFocus: true
     })
     this.load()
@@ -32,22 +71,14 @@ Page({
 
   async load() {
     try {
-      const [budgetRes, overview] = await Promise.all([
-        getBudget().catch(() => null),
-        getOverview({
-          month: this.data.month,
-          scopeType: SCOPE_TYPE.PERSONAL,
-          periodType: 1
-        }).catch(() => null)
-      ])
+      const overview = await getOverview({
+        month: this.data.month,
+        scopeType: this.data.scopeType,
+        periodType: BUDGET_PERIOD_TYPE.MONTH,
+        groupId: this.data.isGroup ? this.data.groupId : undefined
+      }).catch(() => null)
 
-      let budget = 0
-      if (budgetRes && budgetRes.budget != null) {
-        budget = Number(budgetRes.budget) || 0
-      } else if (overview && overview.budget != null) {
-        budget = Number(overview.budget) || 0
-      }
-
+      const budget = Number((overview && overview.budget) || 0)
       const spent = Number((overview && overview.expense) || 0)
       const remain = Math.max(0, budget - spent)
 
@@ -92,18 +123,36 @@ Page({
     if (this.data.saving) return
     if (!requireLogin('设置预算前请先登录')) return
 
-    const budget = Number(this.data.budgetInput)
-    if (Number.isNaN(budget) || budget < 0) {
+    const amount = Number(this.data.budgetInput)
+    if (Number.isNaN(amount) || amount < 0) {
       wx.showToast({ title: '请输入有效金额', icon: 'none' })
+      return
+    }
+    if (this.data.isGroup && (this.data.groupId == null || this.data.groupId === '')) {
+      wx.showToast({ title: '缺少群组信息', icon: 'none' })
       return
     }
 
     this.setData({ saving: true })
     try {
-      await updateBudget(budget)
+      const payload = {
+        scopeType: this.data.scopeType,
+        periodType: BUDGET_PERIOD_TYPE.MONTH,
+        month: this.data.month,
+        amount
+      }
+      if (this.data.isGroup) {
+        payload.scopeId = this.data.groupId
+      }
+      await setBudget(payload)
       wx.showToast({ title: '已保存', icon: 'success' })
       setTimeout(() => {
-        wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/profile/profile' }) })
+        wx.navigateBack({
+          fail: () =>
+            wx.switchTab({
+              url: this.data.isGroup ? '/pages/groups/groups' : '/pages/profile/profile'
+            })
+        })
       }, 500)
     } catch (err) {
       toastError(err, '保存失败')

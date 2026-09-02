@@ -216,11 +216,80 @@ function deleteBill(id) {
   })
 }
 
+/** 预算周期：1=月度，2=年度 */
+const BUDGET_PERIOD_TYPE = {
+  MONTH: 1,
+  YEAR: 2
+}
+
+/**
+ * 设置预算 — POST /api/bill/budget
+ * BudgetDTO: scopeType / scopeId / periodType / periodDate / categoryCode? / amount
+ * - 个人：scopeType=1，不传 scopeId
+ * - 群组：scopeType=2，scopeId=groupId
+ * - 月度 periodType=1，periodDate=yyyy-MM-01
+ */
+function setBudget(options = {}) {
+  const scopeType = normalizeScopeType(options.scopeType)
+  const periodType =
+    Number(options.periodType) === BUDGET_PERIOD_TYPE.YEAR
+      ? BUDGET_PERIOD_TYPE.YEAR
+      : BUDGET_PERIOD_TYPE.MONTH
+
+  let periodDate = options.periodDate
+  if (!periodDate) {
+    const month = String(options.month || '').trim()
+    const yyyyMm = /^\d{4}-\d{2}/.test(month)
+      ? month.slice(0, 7)
+      : (() => {
+          const d = new Date()
+          const m = d.getMonth() + 1
+          return `${d.getFullYear()}-${m < 10 ? `0${m}` : m}`
+        })()
+    periodDate =
+      periodType === BUDGET_PERIOD_TYPE.YEAR
+        ? `${yyyyMm.slice(0, 4)}-01-01`
+        : `${yyyyMm}-01`
+  }
+
+  const amount = Math.max(0, Number(options.amount) || 0)
+  const body = {
+    scopeType,
+    periodType,
+    periodDate,
+    amount
+  }
+
+  if (isGroupScope(scopeType) && options.scopeId != null && options.scopeId !== '') {
+    body.scopeId = options.scopeId
+  }
+  if (options.categoryCode) {
+    body.categoryCode = options.categoryCode
+  }
+  if (options.id != null && options.id !== '') {
+    body.id = options.id
+  }
+
+  if (shouldUseMock()) {
+    mockOverview.budget = amount
+    return Promise.resolve(true)
+  }
+
+  return request({
+    url: '/api/bill/budget',
+    method: 'POST',
+    data: body,
+    forceLoginOnUnauthorized: true
+  })
+}
+
 module.exports = {
   getOverview,
   getBills,
   getBillDetail,
   createBill,
   updateBill,
-  deleteBill
+  deleteBill,
+  setBudget,
+  BUDGET_PERIOD_TYPE
 }

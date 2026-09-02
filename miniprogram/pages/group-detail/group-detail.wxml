@@ -38,6 +38,10 @@
       <text class="section-title">管理</text>
     </view>
     <view class="soft-panel action-list">
+      <view class="action-row" bindtap="onSetBudget">
+        <text>月度预算</text>
+        <text class="action-arrow">›</text>
+      </view>
       <view class="action-row" wx:if="{{isOwner}}" bindtap="onRename">
         <text>修改群名称</text>
         <text class="action-arrow">›</text>

@@ -7,16 +7,13 @@ const {
   normalizeUser
 } = require('../utils/auth')
 
-/** Mock 月度预算（仅本地内存） */
-let mockMonthlyBudget = 5000
-
 /** 获取当前用户资料 — GET /api/user/profile → ResDTO<User> */
 function getProfile() {
   if (shouldUseMock()) {
     if (!getToken()) {
       return Promise.reject(Object.assign(new Error('未登录'), { code: 401 }))
     }
-    return Promise.resolve({ ...mockUser, budget: mockMonthlyBudget })
+    return Promise.resolve({ ...mockUser })
   }
   return request({
     url: '/api/user/profile',
@@ -28,7 +25,7 @@ function getProfile() {
 function updateProfile(payload) {
   if (shouldUseMock()) {
     if (payload && payload.nickname != null) mockUser.nickname = payload.nickname
-    return Promise.resolve({ ...mockUser, budget: mockMonthlyBudget })
+    return Promise.resolve({ ...mockUser })
   }
   const body = {}
   if (payload && payload.nickname != null) body.nickname = payload.nickname
@@ -103,70 +100,6 @@ function uploadAvatar(filePath) {
 }
 
 /**
- * 获取月度预算 — GET /api/user/budget
- * data 可为 number，或 { budget|amount|monthlyBudget }
- */
-function getBudget() {
-  if (shouldUseMock()) {
-    return Promise.resolve({ budget: mockMonthlyBudget })
-  }
-  return request({ url: '/api/user/budget', method: 'GET' }).then((data) => {
-    if (typeof data === 'number') return { budget: data }
-    if (data && typeof data === 'object') {
-      return {
-        budget: Number(
-          data.budget != null
-            ? data.budget
-            : data.amount != null
-              ? data.amount
-              : data.monthlyBudget != null
-                ? data.monthlyBudget
-                : 0
-        )
-      }
-    }
-    return { budget: 0 }
-  })
-}
-
-/**
- * 设置月度预算 — PUT /api/user/budget
- * body: { budget: number }
- */
-function updateBudget(budget) {
-  const amount = Math.max(0, Number(budget) || 0)
-  if (shouldUseMock()) {
-    mockMonthlyBudget = amount
-    try {
-      const { mockOverview } = require('../utils/mock')
-      mockOverview.budget = amount
-    } catch (e) {
-      /* ignore */
-    }
-    return Promise.resolve({ budget: amount })
-  }
-  return request({
-    url: '/api/user/budget',
-    method: 'PUT',
-    data: { budget: amount }
-  }).then((data) => {
-    if (typeof data === 'number') return { budget: data }
-    if (data && typeof data === 'object') {
-      return {
-        budget: Number(
-          data.budget != null
-            ? data.budget
-            : data.amount != null
-              ? data.amount
-              : amount
-        )
-      }
-    }
-    return { budget: amount }
-  })
-}
-
-/**
  * 微信登录 — 后端 ResDTO<String>，data 即为 token 字符串
  * 成功：缓存 token，返回 { token, user: null }（用户信息需再调 getProfile）
  * 失败：request 层抛出 Error(msg)，调用方保持未登录
@@ -210,8 +143,6 @@ module.exports = {
   getProfile,
   updateProfile,
   uploadAvatar,
-  getBudget,
-  updateBudget,
   wxLogin,
   logout
 }

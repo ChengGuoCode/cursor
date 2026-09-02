@@ -1,8 +1,8 @@
 <view class="page budget-page">
   <view class="hero soft-panel">
     <view class="hero-kicker">{{monthLabel}}</view>
-    <view class="hero-title">本月支出预算</view>
-    <view class="hero-desc">设好上限后，概览页会展示本月已用进度</view>
+    <view class="hero-title">{{heroTitle}}</view>
+    <view class="hero-desc">{{heroDesc}}</view>
   </view>
 
   <view class="soft-panel amount-panel">
@@ -39,7 +39,8 @@
   <view class="soft-panel tip-panel">
     <view class="tip-title">小提示</view>
     <view class="tip-item">设为 0 表示不启用预算，概览页不再显示进度条</view>
-    <view class="tip-item">建议按可支配收入的 60%～80% 设定月支出上限</view>
+    <view class="tip-item" wx:if="{{!isGroup}}">建议按可支配收入的 60%～80% 设定月支出上限</view>
+    <view class="tip-item" wx:else>仅群主与管理员可修改本群月度预算</view>
   </view>
 
   <button

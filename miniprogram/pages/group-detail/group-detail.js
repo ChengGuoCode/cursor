@@ -358,6 +358,19 @@ Page({
     })
   },
 
+  onSetBudget() {
+    if (!requireLogin('设置预算前请先登录') || !this.data.canManage) return
+    const group = this.data.group
+    if (!group || group.groupId == null) {
+      wx.showToast({ title: '缺少群组信息', icon: 'none' })
+      return
+    }
+    const name = encodeURIComponent(group.groupName || '')
+    wx.navigateTo({
+      url: `/pages/budget/budget?scopeType=2&groupId=${group.groupId}&groupName=${name}`
+    })
+  },
+
   onRename() {
     if (!requireLogin() || !this.data.isOwner) return
     const group = this.data.group
