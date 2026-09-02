@@ -104,7 +104,7 @@
 | POST | `/api/user/update` | 仅更新昵称（`{ nickname }`） |
 | POST | `/api/user/avatar` | 上传并更新头像（multipart `file`），返回 `/avatar/abc.jpg`；展示为 `{apiBaseUrl}/api/avatar/abc.jpg` |
 | GET | `/api/bill/listBudget?scopeType=&groupId=&periodType=&month=` | 查询预算列表（预算相关查询用此接口，勿用 overview 回填） |
-| POST | `/api/bill/budget` | 设置预算（`BudgetDTO`：个人 `scopeType=1` 不传 scopeId；群组 `scopeType=2` + `scopeId`；月度 `periodType=1` + `periodDate=yyyy-MM-01`） |
+| POST | `/api/bill/budget` | 设置预算（`BudgetDTO`：`periodDate` 为 `yyyy-MM-dd`；`carryOver` 0不沿用/1沿用） |
 | GET | `/api/bill/overview?scopeType=&groupId=&periodType=&month=` | 仪表盘（群组模式传 groupId） |
 | POST | `/api/bill/page` | 账单分页 |
 | GET | `/api/group/list` | 群组列表 |

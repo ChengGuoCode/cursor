@@ -2,7 +2,8 @@ const {
   setBudget,
   listBudget,
   pickOverallBudget,
-  BUDGET_PERIOD_TYPE
+  BUDGET_PERIOD_TYPE,
+  BUDGET_CARRY_OVER
 } = require('../../api/bill')
 const { toastError } = require('../../utils/request')
 const { requireLogin } = require('../../utils/auth')
@@ -22,6 +23,9 @@ Page({
     heroDesc: '设好上限后，概览页会展示本月已用进度',
     budgetInput: '',
     budgetNum: 0,
+    /** 1=沿用，0=不沿用；首次设置默认勾选 */
+    carryOver: BUDGET_CARRY_OVER.ON,
+    carryOverChecked: true,
     presets: ['2000', '3000', '5000', '8000', '10000'],
     inputFocus: false,
     saving: false
@@ -81,12 +85,22 @@ Page({
         groupId: this.data.isGroup ? this.data.groupId : undefined
       })
       const overall = pickOverallBudget(list)
+      const hasRecord = !!(overall && overall.id != null)
       const budget = overall ? Number(overall.amount) || 0 : 0
+      // 首次设置默认沿用；已有记录用后端 carryOver
+      const carryOver =
+        hasRecord && overall
+          ? Number(overall.carryOver) === BUDGET_CARRY_OVER.ON
+            ? BUDGET_CARRY_OVER.ON
+            : BUDGET_CARRY_OVER.OFF
+          : BUDGET_CARRY_OVER.ON
 
       this.setData({
-        budgetId: overall && overall.id != null ? overall.id : null,
+        budgetId: hasRecord ? overall.id : null,
         budgetInput: budget > 0 ? String(budget) : '',
-        budgetNum: budget
+        budgetNum: budget,
+        carryOver,
+        carryOverChecked: carryOver === BUDGET_CARRY_OVER.ON
       })
     } catch (err) {
       toastError(err, '加载预算失败')
@@ -113,6 +127,17 @@ Page({
     })
   },
 
+  onToggleCarryOver() {
+    const next =
+      this.data.carryOver === BUDGET_CARRY_OVER.ON
+        ? BUDGET_CARRY_OVER.OFF
+        : BUDGET_CARRY_OVER.ON
+    this.setData({
+      carryOver: next,
+      carryOverChecked: next === BUDGET_CARRY_OVER.ON
+    })
+  },
+
   async onSave() {
     if (this.data.saving) return
     if (!requireLogin('设置预算前请先登录')) return
@@ -133,7 +158,8 @@ Page({
         scopeType: this.data.scopeType,
         periodType: BUDGET_PERIOD_TYPE.MONTH,
         month: this.data.month,
-        amount
+        amount,
+        carryOver: this.data.carryOver
       }
       if (this.data.isGroup) {
         payload.scopeId = this.data.groupId

@@ -33,11 +33,53 @@
   margin-top: 28rpx;
 }
 
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
 .field-label {
-  display: block;
   font-size: 24rpx;
   color: var(--color-text-secondary);
-  margin-bottom: 16rpx;
+}
+
+.carry-over {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 4rpx 0 4rpx 12rpx;
+}
+
+.carry-check {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid rgba(11, 61, 46, 0.28);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.carry-check.on {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+}
+
+.carry-tick {
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.carry-text {
+  font-size: 24rpx;
+  color: var(--color-text);
 }
 
 .amount-row {
