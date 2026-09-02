@@ -167,20 +167,6 @@ Page({
     return value
   },
 
-  onKeyTap(e) {
-    const key = e.currentTarget.dataset.key
-    let amount = this.data.amount || ''
-    if (key === '⌫') {
-      amount = amount.slice(0, -1)
-    } else if (key === '.') {
-      if (!amount.includes('.')) amount = amount ? `${amount}.` : '0.'
-    } else {
-      if (amount === '0') amount = key
-      else amount = `${amount}${key}`
-    }
-    this.setData({ amount: this.normalizeAmount(amount) })
-  },
-
   async onSubmit() {
     if (!requireLogin('保存账单前请先登录')) return
 
