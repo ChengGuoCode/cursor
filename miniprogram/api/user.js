@@ -135,6 +135,12 @@ function updateBudget(budget) {
   const amount = Math.max(0, Number(budget) || 0)
   if (shouldUseMock()) {
     mockMonthlyBudget = amount
+    try {
+      const { mockOverview } = require('../utils/mock')
+      mockOverview.budget = amount
+    } catch (e) {
+      /* ignore */
+    }
     return Promise.resolve({ budget: amount })
   }
   return request({
