@@ -1,7 +1,6 @@
 const { getProfile } = require('./api/user')
 const { getToken, clearSession, isLoggedIn } = require('./utils/auth')
-const { shouldUseMock } = require('./utils/request')
-const { setEnv } = require('./utils/env')
+const { shouldUseMock, setEnv } = require('./utils/request')
 
 App({
   globalData: {

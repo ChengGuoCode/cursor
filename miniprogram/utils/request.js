@@ -9,17 +9,40 @@
  */
 
 const { getToken, clearSession, handleUnauthorized } = require('./auth')
-const { getEnv } = require('./env')
 
 /** 服务端错误提示展示时长（ms） */
 const SERVER_ERROR_TOAST_MS = 2800
 
-function getAppSafe() {
+/**
+ * 运行环境（内联，避免新建 utils/env.js 在开发者工具
+ * ignoreDevUnusedFiles 下未被打包导致 module is not defined）
+ */
+const runtimeEnv = {
+  useMock: false,
+  apiBaseUrl: 'http://127.0.0.1:9095'
+}
+
+function getEnv() {
   try {
-    return getApp()
+    const app = getApp()
+    if (app && app.globalData) {
+      if (typeof app.globalData.useMock === 'boolean') {
+        runtimeEnv.useMock = app.globalData.useMock
+      }
+      if (app.globalData.apiBaseUrl) {
+        runtimeEnv.apiBaseUrl = String(app.globalData.apiBaseUrl)
+      }
+    }
   } catch (e) {
-    return null
+    /* App 未就绪时用默认值 */
   }
+  return runtimeEnv
+}
+
+function setEnv(partial = {}) {
+  if (typeof partial.useMock === 'boolean') runtimeEnv.useMock = partial.useMock
+  if (partial.apiBaseUrl) runtimeEnv.apiBaseUrl = String(partial.apiBaseUrl)
+  return runtimeEnv
 }
 
 function buildUrl(path) {
@@ -197,7 +220,7 @@ function post(url, data, options = {}) {
 
 /**
  * 仅当显式 useMock === true 时走 Mock。
- * 读 env 模块，避免 getApp 未就绪时误判。
+ * 读 runtimeEnv，避免 getApp 未就绪时误判。
  */
 function shouldUseMock() {
   return getEnv().useMock === true
@@ -218,6 +241,8 @@ module.exports = {
   get,
   post,
   shouldUseMock,
+  getEnv,
+  setEnv,
   getToken,
   extractErrorMessage,
   showServerError,

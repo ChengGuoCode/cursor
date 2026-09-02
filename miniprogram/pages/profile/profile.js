@@ -1,8 +1,7 @@
 const { getProfile, wxLogin, logout } = require('../../api/user')
 const { isLoggedIn, clearSession } = require('../../utils/auth')
-const { shouldUseMock, toastError } = require('../../utils/request')
+const { shouldUseMock, toastError, setEnv } = require('../../utils/request')
 const { clearConfigCache } = require('../../utils/config-store')
-const { setEnv } = require('../../utils/env')
 
 function applyUserToView(user) {
   const safe = user || {}
