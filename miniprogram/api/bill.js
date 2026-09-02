@@ -144,7 +144,7 @@ function getBillDetail(id) {
     if (!bill) return Promise.reject(new Error('账单不存在'))
     return Promise.resolve(mockBillToRes(bill))
   }
-  return request({ url: `/api/bills/${id}`, method: 'GET' }).then(mapBillRes)
+  return request({ url: `/api/bill/detail?billId=${id}`, method: 'GET' }).then(mapBillRes)
 }
 
 /**
@@ -181,7 +181,7 @@ function createBill(payload = {}) {
     return Promise.resolve(mockBillToRes(created))
   }
   return request({
-    url: '/api/bills',
+    url: '/api/bill/transaction',
     method: 'POST',
     data: body,
     forceLoginOnUnauthorized: true
@@ -210,7 +210,7 @@ function deleteBill(id) {
     return Promise.resolve(true)
   }
   return request({
-    url: `/api/bills/${id}`,
+    url: `/api/bill/delete?billId=${id}`,
     method: 'DELETE',
     forceLoginOnUnauthorized: true
   })
