@@ -93,9 +93,9 @@
     </view>
   </view>
 
-  <!-- 昵称编辑层 -->
-  <view class="nickname-mask" wx:if="{{showNicknameEditor}}" catchtouchmove="noop">
-    <view class="nickname-sheet soft-panel">
+  <!-- 昵称编辑层：居中弹窗，避免被自定义 tabBar 遮挡 -->
+  <view class="nickname-mask" wx:if="{{showNicknameEditor}}" catchtouchmove="noop" bindtap="onCancelNickname">
+    <view class="nickname-sheet soft-panel" catchtap="noop">
       <view class="sheet-title">编辑昵称</view>
       <input
         class="sheet-input"
@@ -104,8 +104,9 @@
         placeholder="输入昵称"
         value="{{draftNickname}}"
         focus="{{showNicknameEditor}}"
+        adjust-position="{{true}}"
+        hold-keyboard="{{true}}"
         bindinput="onDraftNicknameInput"
-        bindblur="onDraftNicknameInput"
         confirm-type="done"
         bindconfirm="onSaveNickname"
       />
