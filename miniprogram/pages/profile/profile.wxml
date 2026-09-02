@@ -35,8 +35,8 @@
     </view>
   </view>
 
-  <!-- 预算速览（点卡片可进入设置；入口文案只保留下方菜单一项） -->
-  <view class="section soft-panel budget-card" bindtap="onBudget" wx:if="{{loggedIn}}">
+  <!-- 预算速览（仅展示；设置入口在下方菜单） -->
+  <view class="section soft-panel budget-card" wx:if="{{loggedIn}}">
     <view class="budget-card-top">
       <view>
         <view class="budget-kicker">{{monthLabel}}</view>
@@ -46,7 +46,7 @@
     <view class="budget-amount-row" wx:if="{{budget > 0}}">
       <text class="amount amount-md">¥{{budgetText}}</text>
     </view>
-    <view class="budget-empty" wx:else>尚未设置预算，点此设定本月支出上限</view>
+    <view class="budget-empty" wx:else>尚未设置本月预算</view>
   </view>
 
   <!-- 未登录引导 -->
