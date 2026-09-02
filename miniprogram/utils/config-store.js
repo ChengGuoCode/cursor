@@ -4,6 +4,7 @@
 
 const { getCategories, getAccounts } = require('../api/config')
 const { BILL_TYPE } = require('./bill-map')
+const { shouldUseMock } = require('./request')
 
 const FALLBACK_COLORS = [
   '#C45C26',
@@ -20,6 +21,8 @@ const FALLBACK_COLORS = [
 let cache = {
   categories: null,
   accounts: null,
+  /** 缓存来自 mock 还是真实接口，模式切换后必须失效 */
+  fromMock: null,
   loading: null
 }
 
@@ -57,7 +60,14 @@ function normalizeAccount(item) {
 }
 
 async function loadConfig(force = false) {
-  if (!force && cache.categories && cache.accounts) {
+  const wantMock = shouldUseMock()
+  // Mock ↔ 真实接口切换后，旧缓存（尤其是 mock 的 5 个账户）必须作废
+  if (
+    !force &&
+    cache.categories != null &&
+    cache.accounts != null &&
+    cache.fromMock === wantMock
+  ) {
     return {
       categories: cache.categories,
       accounts: cache.accounts
@@ -69,6 +79,7 @@ async function loadConfig(force = false) {
     .then(([categories, accounts]) => {
       cache.categories = (categories || []).map(normalizeCategory)
       cache.accounts = (accounts || []).map(normalizeAccount).filter(Boolean)
+      cache.fromMock = wantMock
       cache.loading = null
       return {
         categories: cache.categories,
@@ -116,7 +127,7 @@ function findAccount(accountId) {
 }
 
 function clearConfigCache() {
-  cache = { categories: null, accounts: null, loading: null }
+  cache = { categories: null, accounts: null, fromMock: null, loading: null }
 }
 
 module.exports = {

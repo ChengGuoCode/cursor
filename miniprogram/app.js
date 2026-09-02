@@ -20,9 +20,10 @@ App({
 
   onLaunch() {
     this.bootstrapUser()
-    // 预拉类目/账户枚举（失败不影响启动）
+    // 预拉类目/账户枚举（失败不影响启动）；先清缓存避免热重载残留 Mock 数据
     try {
-      const { loadConfig } = require('./utils/config-store')
+      const { loadConfig, clearConfigCache } = require('./utils/config-store')
+      clearConfigCache()
       loadConfig().catch(() => {})
     } catch (e) {
       /* ignore */

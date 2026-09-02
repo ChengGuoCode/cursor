@@ -180,9 +180,14 @@ function post(url, data, options = {}) {
   return request({ ...options, url, method: 'POST', data })
 }
 
+/**
+ * 仅当显式 useMock === true 时走 Mock。
+ * 注意：不可在 getApp 未就绪时默认 true，否则会把 mockAccounts（5 项）灌进配置缓存，
+ * 之后即使改成真实接口也会一直显示这 5 个账户。
+ */
 function shouldUseMock() {
   const app = getAppSafe()
-  return !app || app.globalData.useMock !== false
+  return !!(app && app.globalData && app.globalData.useMock === true)
 }
 
 /** 页面 catch 用：request 已提示过的错误不再重复 toast */
