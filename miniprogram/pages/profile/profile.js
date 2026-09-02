@@ -5,7 +5,7 @@ const {
   updateProfile,
   uploadAvatar
 } = require('../../api/user')
-const { getOverview } = require('../../api/bill')
+const { listBudget, pickOverallBudget, BUDGET_PERIOD_TYPE } = require('../../api/bill')
 const { isLoggedIn, clearSession, requireLogin } = require('../../utils/auth')
 const { shouldUseMock, toastError, resolveAssetUrl } = require('../../utils/request')
 const { formatMoney, formatDate, formatMonthLabel } = require('../../utils/format')
@@ -32,10 +32,7 @@ function emptyUserView() {
     avatarText: '记',
     avatarUrl: '',
     budget: 0,
-    budgetText: '0.00',
-    spent: 0,
-    spentText: '0.00',
-    budgetPercent: 0
+    budgetText: '0.00'
   }
 }
 
@@ -52,8 +49,6 @@ Page({
     monthLabel: '',
     budget: 0,
     budgetText: '0.00',
-    spent: 0,
-    spentText: '0.00',
     budgetPercent: 0
   },
 
@@ -85,23 +80,17 @@ Page({
   async loadBudgetSummary() {
     const month = formatDate(new Date(), 'YYYY-MM')
     try {
-      const overview = await getOverview({
+      const list = await listBudget({
         month,
         scopeType: SCOPE_TYPE.PERSONAL,
-        periodType: 1
-      }).catch(() => null)
-
-      const budget = Number((overview && overview.budget) || 0)
-      const spent = Number((overview && overview.expense) || 0)
-      const budgetPercent =
-        budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : 0
+        periodType: BUDGET_PERIOD_TYPE.MONTH
+      })
+      const overall = pickOverallBudget(list)
+      const budget = overall ? Number(overall.amount) || 0 : 0
 
       this.setData({
         budget,
-        budgetText: formatMoney(budget),
-        spent,
-        spentText: formatMoney(spent),
-        budgetPercent
+        budgetText: formatMoney(budget)
       })
     } catch (e) {
       /* 预算摘要失败不影响主资料 */

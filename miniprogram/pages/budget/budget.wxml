@@ -29,11 +29,6 @@
         bindtap="onPreset"
       >{{item}}</view>
     </view>
-
-    <view class="hint" wx:if="{{spent > 0}}">
-      本月已支出 <text class="hint-em">¥{{spentText}}</text>
-      <text wx:if="{{budgetNum > 0}}"> · 剩余 ¥{{remainText}}</text>
-    </view>
   </view>
 
   <view class="soft-panel tip-panel">

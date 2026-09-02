@@ -283,6 +283,92 @@ function setBudget(options = {}) {
   })
 }
 
+/** 兼容 list 为数组 / {list} / {records} */
+function asBudgetList(data) {
+  if (Array.isArray(data)) return data
+  if (data && Array.isArray(data.list)) return data.list
+  if (data && Array.isArray(data.records)) return data.records
+  return []
+}
+
+function normalizeBudgetItem(item) {
+  if (!item || typeof item !== 'object') return null
+  const amount = Number(item.amount != null ? item.amount : item.budget)
+  return {
+    id: item.id != null ? item.id : null,
+    scopeType:
+      item.scopeType != null ? normalizeScopeType(item.scopeType) : null,
+    scopeId: item.scopeId != null ? item.scopeId : null,
+    periodType:
+      Number(item.periodType) === BUDGET_PERIOD_TYPE.YEAR
+        ? BUDGET_PERIOD_TYPE.YEAR
+        : BUDGET_PERIOD_TYPE.MONTH,
+    periodDate: item.periodDate || '',
+    categoryCode: item.categoryCode || '',
+    amount: Number.isFinite(amount) ? amount : 0
+  }
+}
+
+/**
+ * 取「总预算」：优先无 categoryCode 的条目；否则仅当列表只有 1 条时用该条。
+ */
+function pickOverallBudget(list) {
+  const arr = (Array.isArray(list) ? list : [])
+    .map(normalizeBudgetItem)
+    .filter(Boolean)
+  const overall = arr.find((b) => !b.categoryCode)
+  if (overall) return overall
+  if (arr.length === 1) return arr[0]
+  return null
+}
+
+/**
+ * 查询预算列表 — GET /api/bill/listBudget
+ * @param {object} params
+ * @param {number} params.scopeType 1个人 / 2群组
+ * @param {number|string} [params.groupId] 群组模式必填
+ * @param {number} params.periodType 1月度 / 2年度
+ * @param {string} params.month yyyy-MM
+ */
+function listBudget(params = {}) {
+  const scopeType = normalizeScopeType(params.scopeType)
+  const periodType =
+    Number(params.periodType) === BUDGET_PERIOD_TYPE.YEAR
+      ? BUDGET_PERIOD_TYPE.YEAR
+      : BUDGET_PERIOD_TYPE.MONTH
+  const query = {
+    scopeType,
+    periodType,
+    month: params.month
+  }
+  if (isGroupScope(scopeType) && params.groupId != null && params.groupId !== '') {
+    query.groupId = params.groupId
+  }
+
+  if (shouldUseMock()) {
+    return Promise.resolve([
+      {
+        id: 1,
+        scopeType,
+        scopeId: query.groupId || null,
+        periodType,
+        periodDate:
+          periodType === BUDGET_PERIOD_TYPE.YEAR
+            ? `${String(params.month || '').slice(0, 4)}-01-01`
+            : `${String(params.month || mockOverview.month).slice(0, 7)}-01`,
+        categoryCode: '',
+        amount: Number(mockOverview.budget) || 0
+      }
+    ])
+  }
+
+  return request({
+    url: '/api/bill/listBudget',
+    method: 'GET',
+    data: query
+  }).then((data) => asBudgetList(data).map(normalizeBudgetItem).filter(Boolean))
+}
+
 module.exports = {
   getOverview,
   getBills,
@@ -291,5 +377,7 @@ module.exports = {
   updateBill,
   deleteBill,
   setBudget,
+  listBudget,
+  pickOverallBudget,
   BUDGET_PERIOD_TYPE
 }

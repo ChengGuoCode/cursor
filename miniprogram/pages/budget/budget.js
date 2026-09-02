@@ -1,7 +1,12 @@
-const { setBudget, getOverview, BUDGET_PERIOD_TYPE } = require('../../api/bill')
+const {
+  setBudget,
+  listBudget,
+  pickOverallBudget,
+  BUDGET_PERIOD_TYPE
+} = require('../../api/bill')
 const { toastError } = require('../../utils/request')
 const { requireLogin } = require('../../utils/auth')
-const { formatMoney, formatDate, formatMonthLabel } = require('../../utils/format')
+const { formatDate, formatMonthLabel } = require('../../utils/format')
 const { SCOPE_TYPE, isGroupScope, normalizeScopeType } = require('../../utils/bill-map')
 
 Page({
@@ -10,15 +15,13 @@ Page({
     groupId: null,
     groupName: '',
     isGroup: false,
+    budgetId: null,
     month: '',
     monthLabel: '',
     heroTitle: '本月支出预算',
     heroDesc: '设好上限后，概览页会展示本月已用进度',
     budgetInput: '',
     budgetNum: 0,
-    spent: 0,
-    spentText: '0.00',
-    remainText: '0.00',
     presets: ['2000', '3000', '5000', '8000', '10000'],
     inputFocus: false,
     saving: false
@@ -71,23 +74,19 @@ Page({
 
   async load() {
     try {
-      const overview = await getOverview({
+      const list = await listBudget({
         month: this.data.month,
         scopeType: this.data.scopeType,
         periodType: BUDGET_PERIOD_TYPE.MONTH,
         groupId: this.data.isGroup ? this.data.groupId : undefined
-      }).catch(() => null)
-
-      const budget = Number((overview && overview.budget) || 0)
-      const spent = Number((overview && overview.expense) || 0)
-      const remain = Math.max(0, budget - spent)
+      })
+      const overall = pickOverallBudget(list)
+      const budget = overall ? Number(overall.amount) || 0 : 0
 
       this.setData({
+        budgetId: overall && overall.id != null ? overall.id : null,
         budgetInput: budget > 0 ? String(budget) : '',
-        budgetNum: budget,
-        spent,
-        spentText: formatMoney(spent),
-        remainText: formatMoney(remain)
+        budgetNum: budget
       })
     } catch (err) {
       toastError(err, '加载预算失败')
@@ -100,22 +99,17 @@ Page({
     let value = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : raw
     const [intPart, decPart] = value.split('.')
     if (decPart != null) value = `${intPart}.${decPart.slice(0, 2)}`
-    const budgetNum = Number(value) || 0
-    const remain = Math.max(0, budgetNum - this.data.spent)
     this.setData({
       budgetInput: value,
-      budgetNum,
-      remainText: formatMoney(remain)
+      budgetNum: Number(value) || 0
     })
   },
 
   onPreset(e) {
     const value = String(e.currentTarget.dataset.value || '')
-    const budgetNum = Number(value) || 0
     this.setData({
       budgetInput: value,
-      budgetNum,
-      remainText: formatMoney(Math.max(0, budgetNum - this.data.spent))
+      budgetNum: Number(value) || 0
     })
   },
 
@@ -143,6 +137,9 @@ Page({
       }
       if (this.data.isGroup) {
         payload.scopeId = this.data.groupId
+      }
+      if (this.data.budgetId != null) {
+        payload.id = this.data.budgetId
       }
       await setBudget(payload)
       wx.showToast({ title: '已保存', icon: 'success' })

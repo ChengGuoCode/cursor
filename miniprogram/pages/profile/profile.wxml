@@ -46,12 +46,8 @@
     </view>
     <view class="budget-amount-row" wx:if="{{budget > 0}}">
       <text class="amount amount-md">¥{{budgetText}}</text>
-      <text class="budget-used">已用 ¥{{spentText}}</text>
     </view>
     <view class="budget-empty" wx:else>尚未设置预算，点此设定本月支出上限</view>
-    <view class="budget-track" wx:if="{{budget > 0}}">
-      <view class="budget-fill" style="width: {{budgetPercent}}%;"></view>
-    </view>
   </view>
 
   <!-- 未登录引导 -->
