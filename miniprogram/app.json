@@ -5,6 +5,7 @@
     "pages/add/add",
     "pages/groups/groups",
     "pages/profile/profile",
+    "pages/budget/budget",
     "pages/bill-detail/bill-detail",
     "pages/group-detail/group-detail",
     "pages/group-apply/group-apply",

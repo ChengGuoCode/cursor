@@ -32,7 +32,6 @@ Page({
     groupNames: ['不计入群组'],
     groupIndex: 0,
     remark: '',
-    keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'],
     submitting: false
   },
 
@@ -45,9 +44,17 @@ Page({
 
   async bootstrap() {
     try {
-      await loadConfig()
+      let { accounts } = await loadConfig()
+      if (!(accounts && accounts.length)) {
+        // 缓存为空时强制再拉一次（避免启动预拉失败后一直空）
+        const refreshed = await loadConfig(true)
+        accounts = refreshed.accounts
+      }
       this.refreshCategories()
       this.refreshAccounts()
+      if (!(accounts && accounts.length)) {
+        wx.showToast({ title: '暂无账户配置', icon: 'none' })
+      }
     } catch (e) {
       console.warn(e)
       wx.showToast({ title: '枚举加载失败', icon: 'none' })
@@ -158,20 +165,6 @@ Page({
     const [intPart, decPart] = value.split('.')
     if (decPart != null) value = `${intPart}.${decPart.slice(0, 2)}`
     return value
-  },
-
-  onKeyTap(e) {
-    const key = e.currentTarget.dataset.key
-    let amount = this.data.amount || ''
-    if (key === '⌫') {
-      amount = amount.slice(0, -1)
-    } else if (key === '.') {
-      if (!amount.includes('.')) amount = amount ? `${amount}.` : '0.'
-    } else {
-      if (amount === '0') amount = key
-      else amount = `${amount}${key}`
-    }
-    this.setData({ amount: this.normalizeAmount(amount) })
   },
 
   async onSubmit() {

@@ -1,4 +1,4 @@
-const { request, shouldUseMock } = require('../utils/request')
+const { request, shouldUseMock, buildUrl } = require('../utils/request')
 const { mockUser } = require('../utils/mock')
 const {
   applyLoginSession,
@@ -21,14 +21,82 @@ function getProfile() {
   }).then((data) => normalizeUser(data) || data)
 }
 
-/** 更新用户资料 — PUT /api/user/profile */
+/** 更新昵称 — POST /api/user/update，body: { nickname }（头像走 /avatar 上传接口） */
 function updateProfile(payload) {
   if (shouldUseMock()) {
-    return Promise.resolve({ ...mockUser, ...payload })
+    if (payload && payload.nickname != null) mockUser.nickname = payload.nickname
+    return Promise.resolve({ ...mockUser })
   }
-  return request({ url: '/api/user/profile', method: 'PUT', data: payload }).then(
+  const body = {}
+  if (payload && payload.nickname != null) body.nickname = payload.nickname
+  return request({ url: '/api/user/update', method: 'POST', data: body }).then(
     (data) => normalizeUser(data) || data
   )
+}
+
+/**
+ * 上传并更新头像 — POST /api/user/avatar，multipart 字段 file
+ * 后端已落库；ResDTO.data 为相对路径如 /avatar/abc.jpg（展示时拼 apiBaseUrl）
+ * 无需再调 /api/user/update
+ */
+function uploadAvatar(filePath) {
+  if (shouldUseMock()) {
+    mockUser.avatarUrl = '/avatar/mock.jpg'
+    return Promise.resolve(mockUser.avatarUrl)
+  }
+
+  return new Promise((resolve, reject) => {
+    const token = getToken()
+    wx.uploadFile({
+      url: buildUrl('/api/user/avatar'),
+      filePath,
+      name: 'file',
+      header: token ? { Authorization: `Bearer ${token}` } : {},
+      success(res) {
+        let body = res.data
+        try {
+          body = typeof body === 'string' ? JSON.parse(body) : body
+        } catch (e) {
+          /* 纯字符串路径 */
+        }
+        if (res.statusCode === 401) {
+          reject(Object.assign(new Error('未登录或登录已过期'), { code: 401 }))
+          return
+        }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          const tip =
+            (body && (body.msg || body.message)) || `上传失败（${res.statusCode}）`
+          reject(new Error(tip))
+          return
+        }
+        if (body && typeof body === 'object' && 'code' in body) {
+          if (body.code === 0 || body.code === 200) {
+            const data = body.data
+            if (typeof data === 'string') {
+              resolve(data)
+              return
+            }
+            if (data && typeof data === 'object') {
+              resolve(data.url || data.avatarUrl || data.avatar || '')
+              return
+            }
+            resolve('')
+            return
+          }
+          reject(new Error(body.msg || body.message || '上传失败'))
+          return
+        }
+        if (typeof body === 'string' && body) {
+          resolve(body)
+          return
+        }
+        resolve((body && (body.url || body.avatarUrl || body.avatar)) || '')
+      },
+      fail(err) {
+        reject(new Error((err && err.errMsg) || '头像上传失败'))
+      }
+    })
+  })
 }
 
 /**
@@ -74,6 +142,7 @@ function logout() {
 module.exports = {
   getProfile,
   updateProfile,
+  uploadAvatar,
   wxLogin,
   logout
 }

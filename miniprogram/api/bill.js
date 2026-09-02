@@ -144,7 +144,7 @@ function getBillDetail(id) {
     if (!bill) return Promise.reject(new Error('账单不存在'))
     return Promise.resolve(mockBillToRes(bill))
   }
-  return request({ url: `/api/bills/${id}`, method: 'GET' }).then(mapBillRes)
+  return request({ url: `/api/bill/detail?billId=${id}`, method: 'GET' }).then(mapBillRes)
 }
 
 /**
@@ -181,7 +181,7 @@ function createBill(payload = {}) {
     return Promise.resolve(mockBillToRes(created))
   }
   return request({
-    url: '/api/bills',
+    url: '/api/bill/transaction',
     method: 'POST',
     data: body,
     forceLoginOnUnauthorized: true
@@ -210,10 +210,216 @@ function deleteBill(id) {
     return Promise.resolve(true)
   }
   return request({
-    url: `/api/bills/${id}`,
+    url: `/api/bill/delete?billId=${id}`,
     method: 'DELETE',
     forceLoginOnUnauthorized: true
   })
+}
+
+/** 预算周期：1=月度，2=年度 */
+const BUDGET_PERIOD_TYPE = {
+  MONTH: 1,
+  YEAR: 2
+}
+
+/** 每月沿用：0=不沿用，1=沿用 */
+const BUDGET_CARRY_OVER = {
+  OFF: 0,
+  ON: 1
+}
+
+/**
+ * periodDate → yyyy-MM-dd（对接后端 LocalDate）
+ */
+function toPeriodDateString(value, periodType) {
+  if (value == null || value === '') return ''
+  if (typeof value === 'string') {
+    const s = value.trim()
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+    if (/^\d{4}-\d{2}$/.test(s)) {
+      return periodType === BUDGET_PERIOD_TYPE.YEAR
+        ? `${s.slice(0, 4)}-01-01`
+        : `${s}-01`
+    }
+    // ISO 带时间：2026-09-01T00:00:00
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10)
+  }
+  if (Array.isArray(value) && value.length >= 3) {
+    const y = value[0]
+    const m = Number(value[1])
+    const d = Number(value[2])
+    return `${y}-${m < 10 ? `0${m}` : m}-${d < 10 ? `0${d}` : d}`
+  }
+  if (typeof value === 'object' && value.year != null) {
+    const m = Number(value.monthValue || value.month || 1)
+    const d = Number(value.dayOfMonth || value.day || 1)
+    return `${value.year}-${m < 10 ? `0${m}` : m}-${d < 10 ? `0${d}` : d}`
+  }
+  return ''
+}
+
+function normalizeCarryOver(value, fallback = BUDGET_CARRY_OVER.ON) {
+  if (value == null || value === '') return fallback
+  return Number(value) === BUDGET_CARRY_OVER.ON
+    ? BUDGET_CARRY_OVER.ON
+    : BUDGET_CARRY_OVER.OFF
+}
+
+/**
+ * 设置预算 — POST /api/bill/budget
+ * BudgetDTO: scopeType / scopeId / periodType / periodDate(LocalDate) /
+ *            categoryCode? / amount / carryOver(0不沿用 1沿用)
+ * - 个人：scopeType=1，不传 scopeId
+ * - 群组：scopeType=2，scopeId=groupId
+ * - 月度 periodType=1，periodDate=yyyy-MM-01
+ */
+function setBudget(options = {}) {
+  const scopeType = normalizeScopeType(options.scopeType)
+  const periodType =
+    Number(options.periodType) === BUDGET_PERIOD_TYPE.YEAR
+      ? BUDGET_PERIOD_TYPE.YEAR
+      : BUDGET_PERIOD_TYPE.MONTH
+
+  let periodDate = toPeriodDateString(options.periodDate, periodType)
+  if (!periodDate) {
+    const month = String(options.month || '').trim()
+    const yyyyMm = /^\d{4}-\d{2}/.test(month)
+      ? month.slice(0, 7)
+      : (() => {
+          const d = new Date()
+          const m = d.getMonth() + 1
+          return `${d.getFullYear()}-${m < 10 ? `0${m}` : m}`
+        })()
+    periodDate =
+      periodType === BUDGET_PERIOD_TYPE.YEAR
+        ? `${yyyyMm.slice(0, 4)}-01-01`
+        : `${yyyyMm}-01`
+  }
+
+  const amount = Math.max(0, Number(options.amount) || 0)
+  const carryOver = normalizeCarryOver(options.carryOver, BUDGET_CARRY_OVER.ON)
+  const body = {
+    scopeType,
+    periodType,
+    periodDate,
+    amount,
+    carryOver
+  }
+
+  if (isGroupScope(scopeType) && options.scopeId != null && options.scopeId !== '') {
+    body.scopeId = options.scopeId
+  }
+  if (options.categoryCode) {
+    body.categoryCode = options.categoryCode
+  }
+  if (options.id != null && options.id !== '') {
+    body.id = options.id
+  }
+
+  if (shouldUseMock()) {
+    mockOverview.budget = amount
+    mockOverview.carryOver = carryOver
+    return Promise.resolve(true)
+  }
+
+  return request({
+    url: '/api/bill/budget',
+    method: 'POST',
+    data: body,
+    forceLoginOnUnauthorized: true
+  })
+}
+
+/** 兼容 list 为数组 / {list} / {records} */
+function asBudgetList(data) {
+  if (Array.isArray(data)) return data
+  if (data && Array.isArray(data.list)) return data.list
+  if (data && Array.isArray(data.records)) return data.records
+  return []
+}
+
+function normalizeBudgetItem(item) {
+  if (!item || typeof item !== 'object') return null
+  const amount = Number(item.amount != null ? item.amount : item.budget)
+  const periodType =
+    Number(item.periodType) === BUDGET_PERIOD_TYPE.YEAR
+      ? BUDGET_PERIOD_TYPE.YEAR
+      : BUDGET_PERIOD_TYPE.MONTH
+  return {
+    id: item.id != null ? item.id : null,
+    scopeType:
+      item.scopeType != null ? normalizeScopeType(item.scopeType) : null,
+    scopeId: item.scopeId != null ? item.scopeId : null,
+    periodType,
+    periodDate: toPeriodDateString(item.periodDate, periodType),
+    categoryCode: item.categoryCode || '',
+    amount: Number.isFinite(amount) ? amount : 0,
+    carryOver: normalizeCarryOver(item.carryOver, BUDGET_CARRY_OVER.ON)
+  }
+}
+
+/**
+ * 取「总预算」：优先无 categoryCode 的条目；否则仅当列表只有 1 条时用该条。
+ */
+function pickOverallBudget(list) {
+  const arr = (Array.isArray(list) ? list : [])
+    .map(normalizeBudgetItem)
+    .filter(Boolean)
+  const overall = arr.find((b) => !b.categoryCode)
+  if (overall) return overall
+  if (arr.length === 1) return arr[0]
+  return null
+}
+
+/**
+ * 查询预算列表 — GET /api/bill/listBudget
+ * @param {object} params
+ * @param {number} params.scopeType 1个人 / 2群组
+ * @param {number|string} [params.groupId] 群组模式必填
+ * @param {number} params.periodType 1月度 / 2年度
+ * @param {string} params.month yyyy-MM
+ */
+function listBudget(params = {}) {
+  const scopeType = normalizeScopeType(params.scopeType)
+  const periodType =
+    Number(params.periodType) === BUDGET_PERIOD_TYPE.YEAR
+      ? BUDGET_PERIOD_TYPE.YEAR
+      : BUDGET_PERIOD_TYPE.MONTH
+  const query = {
+    scopeType,
+    periodType,
+    month: params.month
+  }
+  if (isGroupScope(scopeType) && params.groupId != null && params.groupId !== '') {
+    query.groupId = params.groupId
+  }
+
+  if (shouldUseMock()) {
+    return Promise.resolve([
+      {
+        id: 1,
+        scopeType,
+        scopeId: query.groupId || null,
+        periodType,
+        periodDate:
+          periodType === BUDGET_PERIOD_TYPE.YEAR
+            ? `${String(params.month || '').slice(0, 4)}-01-01`
+            : `${String(params.month || mockOverview.month).slice(0, 7)}-01`,
+        categoryCode: '',
+        amount: Number(mockOverview.budget) || 0,
+        carryOver:
+          mockOverview.carryOver != null
+            ? Number(mockOverview.carryOver)
+            : BUDGET_CARRY_OVER.ON
+      }
+    ])
+  }
+
+  return request({
+    url: '/api/bill/listBudget',
+    method: 'GET',
+    data: query
+  }).then((data) => asBudgetList(data).map(normalizeBudgetItem).filter(Boolean))
 }
 
 module.exports = {
@@ -222,5 +428,10 @@ module.exports = {
   getBillDetail,
   createBill,
   updateBill,
-  deleteBill
+  deleteBill,
+  setBudget,
+  listBudget,
+  pickOverallBudget,
+  BUDGET_PERIOD_TYPE,
+  BUDGET_CARRY_OVER
 }

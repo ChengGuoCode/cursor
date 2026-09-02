@@ -10,7 +10,7 @@
 | 2 账单 | `pages/bills` | 按日分组明细，支持月/类型/关键词筛选 |
 | 3 记账 | `pages/add` | 中间凸起入口，快速记一笔 |
 | 4 群组 | `pages/groups` | 合租/出游 AA，结算建议 |
-| 5 我的 | `pages/profile` | 用户信息、预算/分类/账户入口、登录 |
+| 5 我的 | `pages/profile` | 用户资料（头像/昵称）、月度预算入口、登录 |
 
 子页面：`bill-detail`、`group-detail`。
 
@@ -78,7 +78,7 @@
 - `scopeType=1`：不传 `groupId`；`scopeType=2`：传用户所属某个群组的 `groupId`
 - **已加入群组时**：概览/账单默认 `scopeType=2`（群组）；用户手动切个人后本会话保持个人；无群组则回落个人
 - 无所属群组时，切换按钮置灰（不可切到群组）
-- 枚举：`GET /config/category`、`GET /config/account`
+- 枚举：`GET /api/config/category`、`GET /api/config/account`
 - 账单页常用筛选（月/收支）常显；账户/类目收在「更多筛选」折叠区
 - **记账创建** body 对齐 `TransactionReqDTO`：`billType`、`categoryCode`、`accountId`、`amount`、`remark`；选中群组时传 `groupId`，**不传 `scopeType`**
 
@@ -100,7 +100,11 @@
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/user/login` | code 换 token |
-| GET/PUT | `/api/user/profile` | 用户资料 |
+| GET | `/api/user/profile` | 用户资料 |
+| POST | `/api/user/update` | 仅更新昵称（`{ nickname }`） |
+| POST | `/api/user/avatar` | 上传并更新头像（multipart `file`），返回 `/avatar/abc.jpg`；展示为 `{apiBaseUrl}/api/avatar/abc.jpg` |
+| GET | `/api/bill/listBudget?scopeType=&groupId=&periodType=&month=` | 查询预算列表（预算相关查询用此接口，勿用 overview 回填） |
+| POST | `/api/bill/budget` | 设置预算（`BudgetDTO`：`periodDate` 为 `yyyy-MM-dd`；`carryOver` 0不沿用/1沿用） |
 | GET | `/api/bill/overview?scopeType=&groupId=&periodType=&month=` | 仪表盘（群组模式传 groupId） |
 | POST | `/api/bill/page` | 账单分页 |
 | GET | `/api/group/list` | 群组列表 |
@@ -131,5 +135,5 @@ miniprogram/
   utils/                   # request / auth / format / constants / mock
   pages/
     dashboard | bills | add | groups | profile
-    bill-detail | group-detail
+    budget | bill-detail | group-detail
 ```

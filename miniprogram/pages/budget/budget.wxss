@@ -1,0 +1,155 @@
+.budget-page {
+  padding-bottom: 48rpx;
+}
+
+.hero {
+  border: none;
+  background:
+    linear-gradient(145deg, rgba(11, 61, 46, 0.96), rgba(31, 107, 79, 0.88)),
+    #0B3D2E;
+  color: #fff;
+}
+
+.hero-kicker {
+  font-size: 22rpx;
+  letter-spacing: 2rpx;
+  opacity: 0.75;
+}
+
+.hero-title {
+  margin-top: 12rpx;
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.hero-desc {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  opacity: 0.82;
+  line-height: 1.5;
+}
+
+.amount-panel {
+  margin-top: 28rpx;
+}
+
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.field-label {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+
+.carry-over {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 4rpx 0 4rpx 12rpx;
+}
+
+.carry-check {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid rgba(11, 61, 46, 0.28);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.carry-check.on {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+}
+
+.carry-tick {
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.carry-text {
+  font-size: 24rpx;
+  color: var(--color-text);
+}
+
+.amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid var(--color-border);
+}
+
+.currency {
+  font-size: 40rpx;
+  font-weight: 650;
+  color: var(--color-brand);
+}
+
+.amount-input {
+  flex: 1;
+  height: 88rpx;
+  font-size: 56rpx;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.presets {
+  margin-top: 28rpx;
+}
+
+.hint {
+  margin-top: 24rpx;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+
+.hint-em {
+  color: var(--color-expense);
+  font-weight: 600;
+}
+
+.tip-panel {
+  margin-top: 28rpx;
+}
+
+.tip-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+
+.tip-item {
+  position: relative;
+  padding-left: 24rpx;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.tip-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14rpx;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: var(--color-brand-soft);
+}
+
+.save-btn {
+  margin-top: 40rpx;
+  width: 100%;
+}

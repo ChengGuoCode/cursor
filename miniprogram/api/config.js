@@ -25,20 +25,31 @@ const mockAccounts = [
   { accountId: 5, accountName: '信用卡' }
 ]
 
-/** GET /config/category → ResDTO<List<CategoryDTO>> */
+/** 兼容 data 为数组 / {list} / {records} */
+function asList(data) {
+  if (Array.isArray(data)) return data
+  if (data && Array.isArray(data.list)) return data.list
+  if (data && Array.isArray(data.records)) return data.records
+  return []
+}
+
+/** GET /api/config/category → ResDTO<List<CategoryDTO>> */
 function getCategories() {
   if (shouldUseMock()) {
     return Promise.resolve(mockCategories.map((c) => ({ ...c })))
   }
-  return request({ url: '/config/category', method: 'GET' })
+  return request({ url: '/api/config/category', method: 'GET' }).then(asList)
 }
 
-/** GET /config/account → ResDTO<List<AccountDTO>> */
+/**
+ * 账户枚举 — GET /api/config/account → ResDTO<List<AccountDTO>>
+ * 记账页账户下拉、账单筛选都读这份数据
+ */
 function getAccounts() {
   if (shouldUseMock()) {
     return Promise.resolve(mockAccounts.map((a) => ({ ...a })))
   }
-  return request({ url: '/config/account', method: 'GET' })
+  return request({ url: '/api/config/account', method: 'GET' }).then(asList)
 }
 
 module.exports = {
