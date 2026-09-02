@@ -180,20 +180,21 @@ Page({
     const tempPath = e.detail && e.detail.avatarUrl
     if (!tempPath) return
 
+    // chooseAvatar / 相册 / 拍照拿到的都是本地临时路径，不能直接当 avatarUrl 落库
     this.setData({ savingProfile: true })
     try {
-      let avatarUrl = tempPath
-      try {
-        avatarUrl = (await uploadAvatar(tempPath)) || tempPath
-      } catch (uploadErr) {
-        // 上传接口未就绪时先本地预览，并尝试把路径写入资料
-        console.warn('avatar upload failed', uploadErr)
+      const avatarUrl = await uploadAvatar(tempPath)
+      if (!avatarUrl || !/^https?:\/\//.test(avatarUrl)) {
+        throw new Error('头像上传未返回可用 URL，请先提供上传接口')
       }
       const user = await updateProfile({ avatarUrl })
-      this.setData(applyUserToView(user && user.nickname != null ? user : {
-        ...this.data.user,
-        avatarUrl
-      }))
+      this.setData(
+        applyUserToView(
+          user && (user.nickname != null || user.avatarUrl)
+            ? user
+            : { ...this.data.user, avatarUrl }
+        )
+      )
       wx.showToast({ title: '头像已更新', icon: 'success' })
     } catch (err) {
       toastError(err, '头像更新失败')

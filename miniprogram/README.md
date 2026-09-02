@@ -100,8 +100,9 @@
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/user/login` | code 换 token |
-| GET/PUT | `/api/user/profile` | 用户资料（昵称、头像等） |
-| POST | `/api/user/avatar` | 上传头像（multipart `file`），返回 URL |
+| GET | `/api/user/profile` | 用户资料 |
+| POST | `/api/user/update` | 更新资料（`nickname` / `avatarUrl`） |
+| POST | `/api/user/avatar` | 上传头像文件（multipart `file`）→ 永久 URL（换头像前必需） |
 | GET/PUT | `/api/user/budget` | 月度预算（PUT body: `{ budget }`） |
 | GET | `/api/bill/overview?scopeType=&groupId=&periodType=&month=` | 仪表盘（群组模式传 groupId） |
 | POST | `/api/bill/page` | 账单分页 |

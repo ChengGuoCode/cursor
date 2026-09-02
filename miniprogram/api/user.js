@@ -24,20 +24,27 @@ function getProfile() {
   }).then((data) => normalizeUser(data) || data)
 }
 
-/** 更新用户资料 — PUT /api/user/profile（昵称 / 头像 URL 等） */
+/** 更新用户资料 — POST /api/user/update，body: UserInfoDTO（常用 nickname、avatarUrl） */
 function updateProfile(payload) {
   if (shouldUseMock()) {
     Object.assign(mockUser, payload || {})
     return Promise.resolve({ ...mockUser, budget: mockMonthlyBudget })
   }
-  return request({ url: '/api/user/profile', method: 'PUT', data: payload }).then(
+  const body = {}
+  if (payload) {
+    if (payload.nickname != null) body.nickname = payload.nickname
+    if (payload.avatarUrl != null) body.avatarUrl = payload.avatarUrl
+    if (payload.userId != null) body.userId = payload.userId
+  }
+  return request({ url: '/api/user/update', method: 'POST', data: body }).then(
     (data) => normalizeUser(data) || data
   )
 }
 
 /**
- * 上传头像 — POST /api/user/avatar（multipart file）
- * 成功返回头像 URL 字符串（兼容 ResDTO.data 为 string 或 { url/avatarUrl }）
+ * 上传头像文件，换取可持久访问的 URL。
+ * 当前后端若尚未提供上传接口，前端无法把相册/拍照/微信头像的本地临时路径写入 UserInfoDTO.avatarUrl。
+ * 约定：POST /api/user/avatar，multipart 字段名 file，ResDTO.data 为 url 字符串或 { url|avatarUrl }
  */
 function uploadAvatar(filePath) {
   if (shouldUseMock()) {
@@ -89,9 +96,7 @@ function uploadAvatar(filePath) {
           resolve(body)
           return
         }
-        resolve(
-          (body && (body.url || body.avatarUrl || body.avatar)) || filePath || ''
-        )
+        resolve((body && (body.url || body.avatarUrl || body.avatar)) || '')
       },
       fail(err) {
         reject(new Error((err && err.errMsg) || '头像上传失败'))
