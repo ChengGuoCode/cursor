@@ -38,6 +38,13 @@
       <text class="section-title">管理</text>
     </view>
     <view class="soft-panel action-list">
+      <view class="action-row" bindtap="goApplyList">
+        <text>入群申请</text>
+        <view class="action-right">
+          <view wx:if="{{hasPendingApply}}" class="badge-dot"></view>
+          <text class="action-arrow">›</text>
+        </view>
+      </view>
       <view class="action-row" bindtap="onSetBudget">
         <text>月度预算</text>
         <text class="action-arrow">›</text>
@@ -49,13 +56,6 @@
       <view class="action-row" wx:if="{{isOwner}}" bindtap="onRefreshInvite">
         <text>刷新邀请码</text>
         <text class="action-arrow">›</text>
-      </view>
-      <view class="action-row" bindtap="goApplyList">
-        <text>入群申请</text>
-        <view class="action-right">
-          <view wx:if="{{hasPendingApply}}" class="badge-dot"></view>
-          <text class="action-arrow">›</text>
-        </view>
       </view>
       <view class="action-row danger" wx:if="{{isOwner}}" bindtap="onDissolve">
         <text>解散群组</text>

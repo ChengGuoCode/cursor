@@ -35,14 +35,13 @@
     </view>
   </view>
 
-  <!-- 预算速览 -->
+  <!-- 预算速览（点卡片可进入设置；入口文案只保留下方菜单一项） -->
   <view class="section soft-panel budget-card" bindtap="onBudget" wx:if="{{loggedIn}}">
     <view class="budget-card-top">
       <view>
         <view class="budget-kicker">{{monthLabel}}</view>
         <view class="budget-title">月度预算</view>
       </view>
-      <text class="budget-action">去设置 ›</text>
     </view>
     <view class="budget-amount-row" wx:if="{{budget > 0}}">
       <text class="amount amount-md">¥{{budgetText}}</text>
