@@ -1,0 +1,114 @@
+<view class="page bills-page">
+  <view class="scope-bar">
+    <view class="scope-left">
+      <text class="scope-title">{{scopeLabel}}账单</text>
+      <picker
+        wx:if="{{scopeType === 2 && groupNames.length}}"
+        range="{{groupNames}}"
+        value="{{groupIndex}}"
+        bindchange="onGroupPick"
+      >
+        <view class="group-picker">{{groupNames[groupIndex]}} ▾</view>
+      </picker>
+    </view>
+    <view
+      class="swap-btn {{swapDisabled ? 'disabled' : ''}}"
+      bindtap="onSwapScope"
+      hover-class="{{swapDisabled ? '' : 'swap-btn-hover'}}"
+    >
+      <view class="swap-icon">⇄</view>
+      <text class="swap-text">{{scopeType === 1 ? '切群组' : '切个人'}}</text>
+    </view>
+  </view>
+
+  <view class="filter-panel soft-panel">
+    <view class="filter-main">
+      <picker mode="date" fields="month" value="{{month}}" bindchange="onMonthChange">
+        <view class="filter-month">{{monthLabel}} ▾</view>
+      </picker>
+      <view class="chip-row">
+        <view
+          class="chip {{billTypeKey === item.key ? 'active' : ''}}"
+          wx:for="{{typeOptions}}"
+          wx:key="key"
+          data-key="{{item.key}}"
+          bindtap="onTypeChange"
+        >{{item.name}}</view>
+      </view>
+    </view>
+
+    <view class="filter-toggle" bindtap="onToggleFilter">
+      <text class="filter-toggle-text">更多筛选</text>
+      <text class="filter-arrow {{filterExpanded ? 'open' : ''}}">▾</text>
+    </view>
+
+    <view class="filter-extra {{filterExpanded ? 'open' : ''}}">
+      <view class="filter-row">
+        <text class="filter-label">账户</text>
+        <picker range="{{accountNames}}" value="{{accountIndex}}" bindchange="onAccountChange">
+          <view class="filter-value">{{accountNames[accountIndex]}} ▾</view>
+        </picker>
+      </view>
+      <view class="filter-row">
+        <text class="filter-label">类目</text>
+        <picker range="{{categoryNames}}" value="{{categoryIndex}}" bindchange="onCategoryFilterChange">
+          <view class="filter-value">{{categoryNames[categoryIndex]}} ▾</view>
+        </picker>
+      </view>
+    </view>
+  </view>
+
+  <view class="summary soft-panel" wx:if="{{dayGroups.length}}">
+    <view class="summary-item">
+      <text class="summary-label">支出</text>
+      <text class="amount amount-sm amount-expense">{{totalExpenseText}}</text>
+    </view>
+    <view class="summary-item">
+      <text class="summary-label">收入</text>
+      <text class="amount amount-sm amount-income">{{totalIncomeText}}</text>
+    </view>
+  </view>
+
+  <block wx:if="{{dayGroups.length}}">
+    <view class="day-group" wx:for="{{dayGroups}}" wx:key="date">
+      <view class="day-head">
+        <view class="day-left">
+          <text class="day-date">{{item.date}}</text>
+          <text class="day-week">{{item.weekday}}</text>
+        </view>
+        <view class="day-right">
+          <text wx:if="{{item.expense}}" class="amount-expense">支 {{item.expenseText}}</text>
+          <text wx:if="{{item.income}}" class="amount-income">收 {{item.incomeText}}</text>
+        </view>
+      </view>
+      <view class="soft-panel day-list">
+        <view
+          class="bill-row"
+          wx:for="{{item.items}}"
+          wx:for-item="bill"
+          wx:key="id"
+          data-id="{{bill.id}}"
+          bindtap="goDetail"
+        >
+          <view class="bill-icon" style="background: {{bill.color}}22;">{{bill.icon}}</view>
+          <view class="bill-main">
+            <view class="bill-title">{{bill.categoryName}}</view>
+            <view class="bill-sub">{{bill.remark || bill.accountName || '无备注'}}</view>
+          </view>
+          <view class="amount amount-sm {{bill.billType === 1 ? 'amount-income' : 'amount-expense'}}">
+            {{bill.amountText}}
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view wx:elif="{{guestMode}}" class="empty-wrap soft-panel">
+    <view>登录后可查看账单明细</view>
+  </view>
+
+  <view wx:else class="empty-wrap soft-panel">
+    <view>{{scopeType === 2 ? '该群组本月还没有账单' : '这个月还没有账单'}}</view>
+    <button class="btn-primary empty-btn" bindtap="goAdd">记一笔</button>
+  </view>
+</view>

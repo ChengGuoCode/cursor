@@ -1,0 +1,71 @@
+.filter {
+  margin-bottom: 8rpx;
+}
+
+.apply-card {
+  margin-top: 20rpx;
+}
+
+.apply-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.apply-name {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.apply-status {
+  font-size: 22rpx;
+  padding: 6rpx 14rpx;
+  border-radius: 8rpx;
+  background: rgba(11, 61, 46, 0.08);
+  color: var(--color-text-secondary);
+}
+
+.apply-status.status-0 {
+  color: var(--color-accent);
+  background: rgba(196, 92, 38, 0.12);
+}
+
+.apply-status.status-1 {
+  color: var(--color-income);
+  background: rgba(31, 107, 79, 0.12);
+}
+
+.apply-status.status-2 {
+  color: var(--color-text-muted);
+}
+
+.apply-status.status-3 {
+  color: var(--color-text-muted);
+  background: rgba(138, 154, 146, 0.15);
+}
+
+.apply-msg {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+.apply-time {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--color-text-muted);
+}
+
+.apply-actions {
+  margin-top: 20rpx;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12rpx;
+}
+
+.mini {
+  padding: 12rpx 28rpx !important;
+  font-size: 24rpx !important;
+  line-height: 1.2 !important;
+}

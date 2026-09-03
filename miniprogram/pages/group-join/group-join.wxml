@@ -1,0 +1,43 @@
+<view class="page join-page">
+  <view class="soft-panel form-panel">
+    <view class="form-title">申请加入</view>
+    <view class="form-desc">输入邀请码，等待群主或管理员审核</view>
+
+    <view class="field">
+      <text class="field-label">邀请码</text>
+      <input
+        class="field-input"
+        placeholder="输入群组邀请码"
+        value="{{inviteCode}}"
+        maxlength="32"
+        focus
+        adjust-position
+        hold-keyboard
+        bindinput="onInviteInput"
+        confirm-type="next"
+      />
+    </view>
+
+    <view class="field">
+      <text class="field-label">申请留言（选填）</text>
+      <input
+        class="field-input"
+        placeholder="跟群主打个招呼"
+        value="{{applyMsg}}"
+        maxlength="50"
+        adjust-position
+        hold-keyboard
+        bindinput="onApplyMsgInput"
+        confirm-type="done"
+        bindconfirm="onSubmit"
+      />
+    </view>
+
+    <button
+      class="btn-primary submit-btn {{submitting ? 'is-disabled' : ''}}"
+      loading="{{submitting}}"
+      disabled="{{submitting}}"
+      bindtap="onSubmit"
+    >提交申请</button>
+  </view>
+</view>

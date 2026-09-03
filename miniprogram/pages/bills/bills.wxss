@@ -1,0 +1,266 @@
+.scope-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  gap: 16rpx;
+}
+
+.scope-left {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  min-width: 0;
+}
+
+.scope-title {
+  font-size: 36rpx;
+  font-weight: 650;
+  color: var(--color-brand);
+}
+
+.group-picker {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(11, 61, 46, 0.06);
+}
+
+.swap-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(11, 61, 46, 0.08);
+  color: var(--color-brand);
+  flex-shrink: 0;
+}
+
+.swap-btn.disabled {
+  opacity: 0.38;
+  color: var(--color-text-muted);
+  background: rgba(11, 61, 46, 0.04);
+}
+
+.swap-btn-hover {
+  opacity: 0.75;
+}
+
+.swap-icon {
+  font-size: 30rpx;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.swap-text {
+  font-size: 22rpx;
+}
+
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.filter-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.filter-toggle {
+  margin-top: 8rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-toggle-text {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+
+.filter-arrow {
+  font-size: 28rpx;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+.filter-arrow.open {
+  transform: rotate(180deg);
+}
+
+.filter-extra {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.2s ease;
+}
+
+.filter-extra.open {
+  max-height: 240rpx;
+  opacity: 1;
+  margin-top: 8rpx;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72rpx;
+}
+
+.filter-label {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+.filter-value {
+  font-size: 26rpx;
+  color: var(--color-text);
+}
+
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.filter-month {
+  font-size: 34rpx;
+  font-weight: 650;
+  color: var(--color-brand);
+}
+
+.search-row {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  height: 72rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: rgba(11, 61, 46, 0.05);
+  font-size: 26rpx;
+}
+
+.search-btn {
+  padding: 0 28rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 999rpx;
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 26rpx;
+}
+
+.summary {
+  margin-top: 20rpx;
+  display: flex;
+  justify-content: space-around;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.summary-label {
+  font-size: 22rpx;
+  color: var(--color-text-muted);
+}
+
+.day-group {
+  margin-top: 28rpx;
+}
+
+.day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12rpx;
+  padding: 0 8rpx;
+}
+
+.day-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+}
+
+.day-date {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.day-week {
+  font-size: 22rpx;
+  color: var(--color-text-muted);
+}
+
+.day-right {
+  display: flex;
+  gap: 16rpx;
+  font-size: 22rpx;
+}
+
+.day-list {
+  padding-top: 8rpx;
+  padding-bottom: 8rpx;
+}
+
+.bill-row {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 18rpx 0;
+}
+
+.bill-row + .bill-row {
+  border-top: 1rpx solid var(--color-border);
+}
+
+.bill-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  flex-shrink: 0;
+}
+
+.bill-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.bill-title {
+  font-size: 28rpx;
+  font-weight: 560;
+}
+
+.bill-sub {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-btn {
+  margin-top: 28rpx;
+  width: 280rpx;
+}
