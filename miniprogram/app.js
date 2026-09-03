@@ -15,7 +15,8 @@ App({
     groupDetailCache: null,
     // 切换为 false 并配置 apiBaseUrl 后走真实后端
     useMock: false,
-    apiBaseUrl: 'https://www.xiaomanzb.cn'
+    // apiBaseUrl: 'https://www.xiaomanzb.cn'
+    apiBaseUrl: 'http://129.204.196.109:8088'
   },
 
   onLaunch() {

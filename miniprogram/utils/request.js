@@ -19,7 +19,8 @@ const SERVER_ERROR_TOAST_MS = 2800
  */
 const runtimeEnv = {
   useMock: false,
-  apiBaseUrl: 'https://www.xiaomanzb.cn'
+  // apiBaseUrl: 'https://www.xiaomanzb.cn'
+  apiBaseUrl: 'http://129.204.196.109:8088'
 }
 
 function getEnv() {
