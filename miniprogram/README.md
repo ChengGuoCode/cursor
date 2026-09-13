@@ -119,6 +119,13 @@
 | POST | `/api/group/updateMemberName?groupId=&memberName=` | 更新群昵称 |
 | POST | `/api/group/exit?groupId=` | 退出群组 |
 
+## 隐私政策
+
+- 静态页：仓库根目录 `privacy/index.html`
+- 访问路径：`{apiBaseUrl}/privacy`（需后端将该文件挂到 `GET /privacy`）
+- 小程序入口：「我的 → 隐私政策」（`pages/privacy` 通过 web-view 打开上述地址）
+- 正式环境请在微信公众平台配置业务域名（与 `apiBaseUrl` 同域）
+
 ## 本地运行
 
 1. 安装[微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)
@@ -129,6 +136,7 @@
 ## 目录结构
 
 ```
+privacy/                   # 隐私政策 HTML（后端托管 /privacy）
 miniprogram/
   app.js / app.json / app.wxss
   custom-tab-bar/          # 自定义五栏（中间凸起）
@@ -136,5 +144,5 @@ miniprogram/
   utils/                   # request / auth / format / constants / mock
   pages/
     dashboard | bills | add | groups | profile
-    budget | bill-detail | group-detail
+    budget | privacy | bill-detail | group-detail
 ```
