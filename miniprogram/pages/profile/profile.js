@@ -258,9 +258,13 @@ Page({
   onAbout() {
     wx.showModal({
       title: '关于轻记账',
-      content: '轻记账：个人与群组记账，支持月度预算与账单概览。',
+      content: '轻记账：个人与群组记账，支持月度预算与账单概览。可在「隐私政策」查看个人信息处理规则。',
       showCancel: false
     })
+  },
+
+  onPrivacy() {
+    wx.navigateTo({ url: '/pages/privacy/privacy' })
   },
 
   onCancelAccount() {

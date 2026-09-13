@@ -10,7 +10,8 @@
     "pages/group-detail/group-detail",
     "pages/group-apply/group-apply",
     "pages/group-create/group-create",
-    "pages/group-join/group-join"
+    "pages/group-join/group-join",
+    "pages/privacy/privacy"
   ],
   "window": {
     "navigationBarBackgroundColor": "#0B3D2E",
