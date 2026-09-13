@@ -1,0 +1,81 @@
+<view class="page add-page">
+  <view class="type-switch">
+    <view
+      class="type-item {{billType === 2 ? 'active expense' : ''}}"
+      data-bill-type="{{2}}"
+      bindtap="onTypeChange"
+    >支出</view>
+    <view
+      class="type-item {{billType === 1 ? 'active income' : ''}}"
+      data-bill-type="{{1}}"
+      bindtap="onTypeChange"
+    >收入</view>
+  </view>
+
+  <view class="amount-panel soft-panel">
+    <text class="amount-label">金额</text>
+    <view class="amount-row">
+      <text class="currency">¥</text>
+      <input
+        class="amount-input amount"
+        type="digit"
+        maxlength="10"
+        placeholder="0.00"
+        value="{{amount}}"
+        focus="{{amountFocus}}"
+        bindinput="onAmountInput"
+      />
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">分类</view>
+    <view class="category-grid">
+      <view
+        class="category-item {{categoryCode === item.code ? 'active' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="code"
+        data-code="{{item.code}}"
+        bindtap="onCategoryPick"
+      >
+        <view class="category-icon" style="background: {{item.color}}22;">{{item.icon}}</view>
+        <text class="category-name">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section soft-panel form-panel">
+    <view class="form-row">
+      <text class="form-label">账户</text>
+      <picker range="{{accountNames}}" value="{{accountIndex}}" bindchange="onAccountChange">
+        <view class="form-value">{{accountNames[accountIndex]}} ▾</view>
+      </picker>
+    </view>
+    <view class="form-row">
+      <text class="form-label">日期</text>
+      <picker mode="date" value="{{date}}" bindchange="onDateChange">
+        <view class="form-value">{{date}} ▾</view>
+      </picker>
+    </view>
+    <view class="form-row">
+      <text class="form-label">群组</text>
+      <picker range="{{groupNames}}" value="{{groupIndex}}" bindchange="onGroupChange">
+        <view class="form-value">{{groupNames[groupIndex]}} ▾</view>
+      </picker>
+    </view>
+    <view class="form-row remark-row">
+      <text class="form-label">备注</text>
+      <input
+        class="remark-input"
+        placeholder="写点什么…"
+        maxlength="40"
+        value="{{remark}}"
+        bindinput="onRemarkInput"
+      />
+    </view>
+  </view>
+
+  <view class="submit-bar">
+    <button class="btn-primary submit-btn" loading="{{submitting}}" bindtap="onSubmit">保存</button>
+  </view>
+</view>

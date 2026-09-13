@@ -1,0 +1,43 @@
+<view class="page create-page">
+  <view class="soft-panel form-panel">
+    <view class="form-title">新建群组</view>
+    <view class="form-desc">创建后可邀请朋友一起记账</view>
+
+    <view class="field">
+      <text class="field-label">群组名称</text>
+      <input
+        class="field-input"
+        placeholder="例如：发财小家"
+        value="{{groupName}}"
+        maxlength="30"
+        focus
+        adjust-position
+        hold-keyboard
+        bindinput="onGroupNameInput"
+        confirm-type="next"
+      />
+    </view>
+
+    <view class="field">
+      <text class="field-label">我的群昵称（选填）</text>
+      <input
+        class="field-input"
+        placeholder="不填则用默认昵称"
+        value="{{memberName}}"
+        maxlength="20"
+        adjust-position
+        hold-keyboard
+        bindinput="onMemberNameInput"
+        confirm-type="done"
+        bindconfirm="onSubmit"
+      />
+    </view>
+
+    <button
+      class="btn-primary submit-btn {{submitting ? 'is-disabled' : ''}}"
+      loading="{{submitting}}"
+      disabled="{{submitting}}"
+      bindtap="onSubmit"
+    >创建</button>
+  </view>
+</view>

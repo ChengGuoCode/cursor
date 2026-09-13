@@ -1,0 +1,4 @@
+/* web-view 页无需额外样式 */
+page {
+  background: #F3F6F4;
+}

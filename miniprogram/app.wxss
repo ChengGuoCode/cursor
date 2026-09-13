@@ -1,0 +1,177 @@
+/** 轻记账设计变量：墨绿信任感 + 浅灰绿氛围，数字用等宽风格 */
+page {
+  --color-brand: #0B3D2E;
+  --color-brand-soft: #1F6B4F;
+  --color-accent: #C45C26;
+  --color-income: #1F6B4F;
+  --color-expense: #C45C26;
+  --color-bg: #F3F6F4;
+  --color-surface: #FFFFFF;
+  --color-text: #14201B;
+  --color-text-secondary: #5C6F66;
+  --color-text-muted: #8A9A92;
+  --color-border: rgba(11, 61, 46, 0.08);
+  --color-shadow: rgba(11, 61, 46, 0.08);
+  --radius-sm: 12rpx;
+  --radius-md: 20rpx;
+  --radius-lg: 28rpx;
+  --space-page: 32rpx;
+  --tabbar-height: 120rpx;
+  --safe-bottom: env(safe-area-inset-bottom);
+
+  background:
+    radial-gradient(1200rpx 600rpx at 10% -10%, rgba(31, 107, 79, 0.12), transparent 55%),
+    radial-gradient(900rpx 500rpx at 100% 0%, rgba(196, 92, 38, 0.08), transparent 50%),
+    var(--color-bg);
+  color: var(--color-text);
+  font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+view,
+text,
+button,
+input,
+textarea,
+picker {
+  box-sizing: border-box;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 24rpx var(--space-page) calc(var(--tabbar-height) + var(--safe-bottom) + 24rpx);
+}
+
+.page-title {
+  font-size: 44rpx;
+  font-weight: 650;
+  letter-spacing: 1rpx;
+  color: var(--color-brand);
+}
+
+.page-subtitle {
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+.section {
+  margin-top: 36rpx;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.section-action {
+  font-size: 24rpx;
+  color: var(--color-brand-soft);
+}
+
+.amount {
+  font-family: "DIN Alternate", "Helvetica Neue", "PingFang SC", sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1rpx;
+}
+
+.amount-lg {
+  font-size: 64rpx;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.amount-md {
+  font-size: 40rpx;
+  font-weight: 650;
+}
+
+.amount-sm {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.amount-income {
+  color: var(--color-income);
+}
+
+.amount-expense {
+  color: var(--color-expense);
+}
+
+.soft-panel {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(243, 246, 244, 0.9));
+  border: 1rpx solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28rpx;
+}
+
+.list-divider {
+  height: 1rpx;
+  background: var(--color-border);
+  margin: 0 8rpx;
+}
+
+.btn-primary {
+  background: var(--color-brand);
+  color: #fff;
+  border-radius: 999rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  padding: 22rpx 40rpx;
+  line-height: 1.2;
+  border: none;
+}
+
+.btn-primary::after {
+  border: none;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-brand);
+  border: 1rpx solid rgba(11, 61, 46, 0.25);
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  padding: 18rpx 32rpx;
+  line-height: 1.2;
+}
+
+.btn-ghost::after {
+  border: none;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.chip {
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  background: rgba(11, 61, 46, 0.06);
+}
+
+.chip.active {
+  color: #fff;
+  background: var(--color-brand);
+}
+
+.empty-wrap {
+  padding: 80rpx 24rpx;
+  text-align: center;
+  color: var(--color-text-muted);
+}

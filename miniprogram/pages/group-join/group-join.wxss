@@ -1,0 +1,49 @@
+.join-page {
+  padding-bottom: 48rpx;
+}
+
+.form-panel {
+  margin-top: 12rpx;
+}
+
+.form-title {
+  font-size: 40rpx;
+  font-weight: 650;
+  color: var(--color-brand);
+}
+
+.form-desc {
+  margin-top: 8rpx;
+  margin-bottom: 36rpx;
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+.field {
+  margin-bottom: 28rpx;
+}
+
+.field-label {
+  display: block;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  margin-bottom: 12rpx;
+}
+
+.field-input {
+  height: 88rpx;
+  padding: 0 28rpx;
+  background: rgba(11, 61, 46, 0.05);
+  border-radius: var(--radius-sm);
+  font-size: 30rpx;
+  color: var(--color-text);
+}
+
+.submit-btn {
+  margin-top: 20rpx;
+  width: 100%;
+}
+
+.is-disabled {
+  opacity: 0.55;
+}

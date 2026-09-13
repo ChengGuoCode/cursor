@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>轻记账隐私政策</title>
+  <style>
+    :root {
+      --brand: #0B3D2E;
+      --brand-soft: #1F6B4F;
+      --text: #14201B;
+      --muted: #5C6F66;
+      --bg: #F3F6F4;
+      --card: #ffffff;
+      --border: rgba(11, 61, 46, 0.1);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+        "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-text-size-adjust: 100%;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px 16px 48px;
+    }
+    .hero {
+      background: linear-gradient(145deg, #0B3D2E, #1F6B4F);
+      color: #fff;
+      border-radius: 16px;
+      padding: 22px 18px;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .hero p {
+      margin: 8px 0 0;
+      opacity: 0.88;
+      font-size: 13px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 16px;
+      margin-bottom: 12px;
+    }
+    h2 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      color: var(--brand);
+    }
+    h3 {
+      margin: 16px 0 8px;
+      font-size: 15px;
+      color: var(--brand-soft);
+    }
+    p, li { color: var(--text); }
+    p { margin: 0 0 10px; }
+    ul { margin: 0 0 10px; padding-left: 1.2em; }
+    li { margin: 4px 0; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 8px 0 12px;
+    }
+    .table th, .table td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .table th {
+      background: rgba(11, 61, 46, 0.06);
+      color: var(--brand);
+      font-weight: 600;
+    }
+    a { color: var(--brand-soft); }
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>轻记账隐私政策</h1>
+      <p>更新日期：2026年9月13日　｜　生效日期：2026年9月13日</p>
+    </header>
+
+    <section class="card">
+      <p>欢迎使用「轻记账」微信小程序（以下简称「本小程序」或「我们」）。我们深知个人信息对您的重要性，并会尽全力保护您的个人信息安全可靠。本政策依据《中华人民共和国个人信息保护法》《中华人民共和国网络安全法》及微信小程序平台相关规范制定，向您说明我们如何收集、使用、存储、共享与保护您的个人信息，以及您享有的权利。</p>
+      <p class="muted">请您在使用本小程序前仔细阅读并理解本政策。您点击同意、登录或继续使用，即表示您已了解并同意本政策的相关约定（法律法规另有规定的除外）。</p>
+    </section>
+
+    <section class="card">
+      <h2>一、我们是谁</h2>
+      <p>本小程序名称：轻记账。</p>
+      <p>本小程序为个人/家庭记账与群组 AA 记账工具，主要功能包括：微信登录、账单记账与查询、月度预算、群组协作记账、个人资料（昵称/头像）管理及账号注销等。</p>
+      <p class="muted">如需就本政策进行咨询或行使个人信息相关权利，请通过本小程序「我的」页反馈，或联系运营方预留的客服渠道（以实际公示为准）。</p>
+    </section>
+
+    <section class="card">
+      <h2>二、我们收集的信息及用途</h2>
+      <p>我们遵循「合法、正当、必要、诚信」原则，仅在实现产品功能所必需的范围内处理个人信息。结合本小程序现有能力，涉及的信息如下：</p>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>信息类型</th>
+            <th>收集场景 / 方式</th>
+            <th>使用目的</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>微信登录凭证（code）及由此在服务端换取的账号标识（如 openid 等）</td>
+            <td>您点击「微信登录」时，通过微信提供的登录能力获取</td>
+            <td>创建/识别账号、维持登录状态、保障账号安全</td>
+          </tr>
+          <tr>
+            <td>登录凭证（Token）</td>
+            <td>登录成功后由服务端下发，并保存在您的设备本地</td>
+            <td>鉴权访问受保护接口，保持会话</td>
+          </tr>
+          <tr>
+            <td>昵称</td>
+            <td>您主动填写或修改昵称时</td>
+            <td>个人资料展示、群组内识别</td>
+          </tr>
+          <tr>
+            <td>头像图片及头像访问路径</td>
+            <td>您通过微信头像选择能力上传时</td>
+            <td>个人资料展示</td>
+          </tr>
+          <tr>
+            <td>账单信息（金额、收支类型、分类、账户、日期、备注、所属个人/群组等）</td>
+            <td>您主动记账、查询、筛选或查看详情时</td>
+            <td>提供记账、账单列表、概览统计等核心功能</td>
+          </tr>
+          <tr>
+            <td>预算信息（预算金额、周期、是否每月沿用、作用域等）</td>
+            <td>您设置或查询月度预算时</td>
+            <td>预算管理与概览进度展示</td>
+          </tr>
+          <tr>
+            <td>群组相关信息（群名称、成员昵称、角色、邀请码、入群申请等）</td>
+            <td>您创建/加入/管理群组，或处理申请时</td>
+            <td>群组协作记账与成员管理</td>
+          </tr>
+          <tr>
+            <td>设备与日志类信息（如网络请求状态、错误日志、操作时间等）</td>
+            <td>使用过程中自动采集（最小化）</td>
+            <td>安全风控、故障排查与服务稳定性</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>我们不会主动收集的信息</h3>
+      <ul>
+        <li>精确地理位置、通讯录、短信、通话记录、麦克风录音、摄像头持续拍摄等与记账无关的敏感权限信息；</li>
+        <li>未经您授权的微信好友关系、运动数据等；</li>
+        <li>除您主动上传头像外，不会批量读取您的相册内容。</li>
+      </ul>
+      <p class="muted">说明：若页面中出现手机号脱敏展示字段，仅在您或关联账号已提供且业务需要时展示；当前小程序未将手机号作为必填注册信息。</p>
+    </section>
+
+    <section class="card">
+      <h2>三、微信开放能力与第三方</h2>
+      <p>为实现登录与头像选择，本小程序使用了微信提供的开放能力（包括但不限于 <code>wx.login</code>、头像昵称填写能力）。相关处理同时受到《微信隐私保护指引》及微信开放平台规则约束。</p>
+      <p>除为完成本小程序功能所必需的情况外，我们不会向无关的第三方出售您的个人信息。如未来因合规审计、安全防护或依法请求需要委托处理，我们将要求受托方按照本政策及法律规定保护您的信息，并采取必要的安全与保密措施。</p>
+    </section>
+
+    <section class="card">
+      <h2>四、信息的存储与保护</h2>
+      <ul>
+        <li><strong>存储地点：</strong>您的个人信息将存储于中华人民共和国境内的服务器。如因业务需要跨境传输，我们将依法履行评估与告知义务并征得您的单独同意（法律另有规定除外）。</li>
+        <li><strong>保存期限：</strong>我们仅在实现本政策所述目的所必需的最短期限内保存。账号注销后，我们将删除或依法匿名化处理您的个人信息，但法律法规要求保留的除外。</li>
+        <li><strong>安全措施：</strong>我们采取合理的技术与管理措施（如传输加密、访问控制、权限最小化、安全日志等）保护个人信息，防止未经授权的访问、披露、篡改或丢失。</li>
+      </ul>
+      <p class="muted">请理解：任何安全措施都无法做到百分之百的保证。如发生个人信息安全事件，我们将按法规要求及时告知并采取补救措施。</p>
+    </section>
+
+    <section class="card">
+      <h2>五、您的权利</h2>
+      <p>在符合法律法规的前提下，您对自己的个人信息享有以下权利：</p>
+      <ul>
+        <li><strong>查阅与更正：</strong>可在「我的」查看并修改昵称、头像等资料；</li>
+        <li><strong>删除：</strong>可删除您录入的账单等业务数据（以产品实际能力为准）；</li>
+        <li><strong>撤回授权：</strong>可在微信客户端中管理对本小程序的授权；撤回后可能影响对应功能使用；</li>
+        <li><strong>注销账号：</strong>可在「我的 → 注销账号」申请注销。注销前我们会再次提示「注销后无法恢复」。注销成功后，我们将清理服务端账号相关数据，并清除本小程序本地登录态（如 Token）。</li>
+      </ul>
+      <p>如您无法通过上述路径行使权利，可通过本政策载明的联系方式与我们联系，我们将在核实身份后依法及时响应。</p>
+    </section>
+
+    <section class="card">
+      <h2>六、未成年人保护</h2>
+      <p>本小程序主要面向成人用户。若您为未满 14 周岁的未成年人，请在监护人同意并指导下使用，并由监护人阅读本政策。我们不会故意收集儿童的个人信息；如发现已收集，将尽快删除。</p>
+    </section>
+
+    <section class="card">
+      <h2>七、本政策的更新</h2>
+      <p>我们可能适时修订本政策。更新后，我们会在本页面发布最新版本并更新「更新日期」。若变更导致您的权利实质性减损或处理目的发生重大变化，我们将通过小程序内提示等方式再次征得您的同意（法律另有规定除外）。</p>
+    </section>
+
+    <section class="card">
+      <h2>八、适用范围</h2>
+      <p>本政策仅适用于「轻记账」微信小程序及相关服务。第三方服务（如微信支付、微信本身）有其独立的隐私政策，请您另行阅读。</p>
+    </section>
+
+    <p class="footer">轻记账 · 隐私政策</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,145 @@
+.hero {
+  background: linear-gradient(145deg, var(--color-brand), rgba(11, 61, 46, 0.88));
+  color: #fff;
+  border: none;
+}
+
+.name {
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.meta {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  opacity: 0.85;
+}
+
+.invite-row {
+  margin-top: 28rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  font-size: 26rpx;
+}
+
+.invite-label {
+  opacity: 0.8;
+}
+
+.invite-code {
+  font-family: "DIN Alternate", "Helvetica Neue", sans-serif;
+  letter-spacing: 2rpx;
+  font-weight: 650;
+}
+
+.invite-copy {
+  margin-left: auto;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 22rpx;
+}
+
+.hint {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  opacity: 0.75;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 0;
+}
+
+.member + .member {
+  border-top: 1rpx solid var(--color-border);
+}
+
+.member-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 20rpx;
+  background: rgba(11, 61, 46, 0.1);
+  color: var(--color-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.member-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.member-name {
+  font-size: 28rpx;
+  font-weight: 560;
+}
+
+.member-role {
+  font-size: 22rpx;
+  color: var(--color-text-muted);
+}
+
+.member-more {
+  color: var(--color-text-muted);
+  font-size: 32rpx;
+  padding: 0 8rpx;
+}
+
+.action-list {
+  padding-top: 8rpx;
+  padding-bottom: 8rpx;
+}
+
+.action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 26rpx 0;
+  font-size: 28rpx;
+  color: var(--color-text);
+}
+
+.action-row + .action-row {
+  border-top: 1rpx solid var(--color-border);
+}
+
+.action-row.danger {
+  color: var(--color-expense);
+}
+
+.action-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.badge-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #e54d42;
+  flex-shrink: 0;
+}
+
+.action-arrow {
+  color: var(--color-text-muted);
+}
+
+.footer-actions {
+  margin-top: 48rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.exit-btn {
+  min-width: 280rpx;
+  text-align: center;
+}

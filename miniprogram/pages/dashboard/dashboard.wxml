@@ -1,0 +1,116 @@
+<view class="page dashboard">
+  <view class="scope-bar">
+    <view class="scope-left">
+      <text class="scope-title">{{scopeLabel}}概览</text>
+      <picker
+        wx:if="{{scopeType === 2 && groupNames.length}}"
+        range="{{groupNames}}"
+        value="{{groupIndex}}"
+        bindchange="onGroupPick"
+      >
+        <view class="group-picker">{{groupNames[groupIndex]}} ▾</view>
+      </picker>
+    </view>
+    <view
+      class="swap-btn {{swapDisabled ? 'disabled' : ''}}"
+      bindtap="onSwapScope"
+      hover-class="{{swapDisabled ? '' : 'swap-btn-hover'}}"
+    >
+      <view class="swap-icon">⇄</view>
+      <text class="swap-text">{{scopeType === 1 ? '切群组' : '切个人'}}</text>
+    </view>
+  </view>
+
+  <view class="hero soft-panel">
+    <view class="hero-top">
+      <view>
+        <view class="brand">轻记账</view>
+        <view class="page-subtitle">{{monthLabel}} · 一眼看清收支</view>
+      </view>
+      <picker mode="date" fields="month" value="{{month}}" bindchange="onMonthChange">
+        <view class="month-picker">{{monthLabel}} ▾</view>
+      </picker>
+    </view>
+
+    <view class="balance-block">
+      <text class="balance-label">本月结余</text>
+      <view class="amount amount-lg {{balance >= 0 ? 'amount-income' : 'amount-expense'}}">
+        {{balanceText}}
+      </view>
+    </view>
+
+    <view class="metric-row">
+      <view class="metric">
+        <text class="metric-label">支出</text>
+        <text class="amount amount-sm amount-expense">{{expenseText}}</text>
+      </view>
+      <view class="metric-divider"></view>
+      <view class="metric">
+        <text class="metric-label">收入</text>
+        <text class="amount amount-sm amount-income">{{incomeText}}</text>
+      </view>
+    </view>
+
+    <view class="budget" wx:if="{{budget > 0}}">
+      <view class="budget-head">
+        <text>预算使用</text>
+        <text>{{budgetUsedText}} / {{budgetText}}</text>
+      </view>
+      <view class="budget-track">
+        <view class="budget-fill" style="width: {{budgetPercent}}%;"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <text class="section-title">近七日支出</text>
+      <text class="section-action">含今天往前 7 天</text>
+    </view>
+    <view class="soft-panel trend-panel">
+      <view wx:if="{{guestMode}}" class="empty-wrap">登录后可查看近七日支出</view>
+      <view wx:else class="trend-bars">
+        <view class="trend-col {{item.isToday ? 'today' : ''}}" wx:for="{{trend}}" wx:key="date">
+          <view class="bar-wrap">
+            <text class="bar-amount {{item.expense > 0 ? '' : 'is-zero'}}">{{item.amountText}}</text>
+            <view
+              class="bar {{item.expense > 0 ? '' : 'is-zero'}}"
+              style="height: {{item.height}}%;"
+            ></view>
+          </view>
+          <text class="trend-label">{{item.label}}</text>
+          <text class="trend-weekday">{{item.weekday}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <text class="section-title">分类占比</text>
+      <text class="section-action" bindtap="goBills">查看全部</text>
+    </view>
+    <view class="soft-panel">
+      <block wx:if="{{guestMode}}">
+        <view class="empty-wrap">登录后可查看收支概览</view>
+      </block>
+      <block wx:elif="{{categoryStats.length}}">
+        <view class="cat-item" wx:for="{{categoryStats}}" wx:key="categoryId">
+          <view class="cat-left">
+            <text class="cat-icon">{{item.icon}}</text>
+            <text class="cat-name">{{item.name}}</text>
+          </view>
+          <view class="cat-right">
+            <view class="cat-track">
+              <view class="cat-fill" style="width: {{item.percent}}%; background: {{item.color}};"></view>
+            </view>
+            <text class="amount amount-sm">{{item.amountText}}</text>
+          </view>
+        </view>
+      </block>
+      <view wx:else class="empty-wrap">本月暂无支出分类</view>
+    </view>
+  </view>
+
+  
+</view>
