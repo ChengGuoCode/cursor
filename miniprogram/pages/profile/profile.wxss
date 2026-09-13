@@ -225,6 +225,15 @@
   border-bottom: none;
 }
 
+.menu-item.danger {
+  color: var(--color-expense);
+}
+
+.menu-item.danger .menu-icon,
+.menu-item.danger .arrow {
+  color: var(--color-expense);
+}
+
 .menu-left {
   display: flex;
   align-items: center;

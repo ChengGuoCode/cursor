@@ -3,11 +3,13 @@ const {
   wxLogin,
   logout,
   updateProfile,
-  uploadAvatar
+  uploadAvatar,
+  cancelAccount
 } = require('../../api/user')
 const { listBudget, pickOverallBudget, BUDGET_PERIOD_TYPE } = require('../../api/bill')
 const { isLoggedIn, clearSession, requireLogin } = require('../../utils/auth')
 const { shouldUseMock, toastError, resolveAssetUrl } = require('../../utils/request')
+const { clearConfigCache } = require('../../utils/config-store')
 const { formatMoney, formatDate, formatMonthLabel } = require('../../utils/format')
 const { SCOPE_TYPE } = require('../../utils/bill-map')
 
@@ -36,6 +38,24 @@ function emptyUserView() {
   }
 }
 
+/** 注销/退出后清本地登录态与业务缓存 */
+function resetLocalSession() {
+  clearSession()
+  clearConfigCache()
+  try {
+    const app = getApp()
+    if (app && app.globalData) {
+      app.globalData.userInfo = null
+      app.globalData.scopeType = SCOPE_TYPE.PERSONAL
+      app.globalData.scopePreferPersonal = false
+      app.globalData.currentGroupId = null
+      app.globalData.groupDetailCache = null
+    }
+  } catch (e) {
+    /* ignore */
+  }
+}
+
 Page({
   data: {
     user: {},
@@ -44,6 +64,7 @@ Page({
     avatarUrl: '',
     loggingIn: false,
     savingProfile: false,
+    cancelling: false,
     showNicknameEditor: false,
     draftNickname: '',
     monthLabel: '',
@@ -239,6 +260,33 @@ Page({
       title: '关于轻记账',
       content: '轻记账：个人与群组记账，支持月度预算与账单概览。',
       showCancel: false
+    })
+  },
+
+  onCancelAccount() {
+    if (!requireLogin('请先登录')) return
+    if (this.data.cancelling || this.data.loggingIn || this.data.savingProfile) return
+
+    wx.showModal({
+      title: '注销账号',
+      content: '注销后账号及相关数据将无法恢复，确定要注销吗？',
+      confirmText: '确认注销',
+      confirmColor: '#C45C26',
+      cancelText: '再想想',
+      success: async (res) => {
+        if (!res.confirm) return
+        this.setData({ cancelling: true })
+        try {
+          await cancelAccount()
+          resetLocalSession()
+          this.setData(emptyUserView())
+          wx.showToast({ title: '账号已注销', icon: 'none' })
+        } catch (err) {
+          toastError(err, '注销失败')
+        } finally {
+          this.setData({ cancelling: false })
+        }
+      }
     })
   },
 

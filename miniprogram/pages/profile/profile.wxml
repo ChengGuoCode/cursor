@@ -86,6 +86,17 @@
       </view>
       <text class="arrow">›</text>
     </view>
+    <view
+      class="menu-item danger"
+      bindtap="onCancelAccount"
+      wx:if="{{loggedIn}}"
+    >
+      <view class="menu-left">
+        <text class="menu-icon">⊘</text>
+        <text>注销账号</text>
+      </view>
+      <text class="arrow">›</text>
+    </view>
   </view>
 
   <!-- 昵称编辑层：居中弹窗，避免被自定义 tabBar 遮挡 -->
@@ -119,8 +130,8 @@
 
   <button
     class="btn-primary login-btn"
-    loading="{{loggingIn}}"
-    disabled="{{loggingIn || savingProfile}}"
+    loading="{{loggingIn || cancelling}}"
+    disabled="{{loggingIn || savingProfile || cancelling}}"
     bindtap="onLoginOrLogout"
   >
     {{loggedIn ? '退出登录' : '微信登录'}}

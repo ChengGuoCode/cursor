@@ -139,10 +139,27 @@ function logout() {
     })
 }
 
+/**
+ * 注销账号 — POST /api/user/cancel
+ * 成功后由调用方清本地会话；失败不清理，便于重试
+ */
+function cancelAccount() {
+  if (shouldUseMock()) {
+    clearSession()
+    return Promise.resolve(true)
+  }
+  return request({
+    url: '/api/user/cancel',
+    method: 'POST',
+    forceLoginOnUnauthorized: true
+  })
+}
+
 module.exports = {
   getProfile,
   updateProfile,
   uploadAvatar,
   wxLogin,
-  logout
+  logout,
+  cancelAccount
 }
