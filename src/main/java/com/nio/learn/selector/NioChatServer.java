@@ -14,8 +14,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -39,13 +37,13 @@ public final class NioChatServer implements AutoCloseable {
         this.bindPort = bindPort;
     }
 
-    public static NioChatServer start(int port) throws IOException, InterruptedException {
+    public static NioChatServer start(int port) throws IOException {
         NioChatServer server = new NioChatServer(port);
         server.start();
         return server;
     }
 
-    public void start() throws IOException, InterruptedException {
+    public void start() throws IOException {
         if (!running.compareAndSet(false, true)) {
             return;
         }
@@ -55,15 +53,9 @@ public final class NioChatServer implements AutoCloseable {
         server.bind(new InetSocketAddress("127.0.0.1", bindPort));
         actualPort = ((InetSocketAddress) server.getLocalAddress()).getPort();
         server.register(selector, SelectionKey.OP_ACCEPT);
-        CountDownLatch ready = new CountDownLatch(1);
         loopThread = new Thread(this::loop, "nio-chat-" + actualPort);
         loopThread.setDaemon(true);
         loopThread.start();
-        ready.countDown();
-        if (!ready.await(5, TimeUnit.SECONDS)) {
-            throw new IOException("chat server did not start");
-        }
-        System.out.println("chat server listening on 127.0.0.1:" + actualPort);
     }
 
     public int port() {
