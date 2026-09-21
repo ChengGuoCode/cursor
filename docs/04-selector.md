@@ -2,6 +2,14 @@
 
 Selector 是 NIO 网络编程的心脏。模型是：**注册兴趣 → 阻塞/超时等待就绪 → 逐个处理 → 改兴趣 → 再 wait**。
 
+这里的「兴趣」不是日常用语，对应 JDK 原文 **interest set**（兴趣集），读写它的 API 是 `SelectionKey.interestOps` / `interestOps(int)`。含义是：你告诉 Selector，这个 Channel **下一次 `select` 时要检测哪几类操作是否就绪**。四类操作就是下面的 `OP_ACCEPT` / `OP_CONNECT` / `OP_READ` / `OP_WRITE`。
+
+`channel.register(selector, ops)` 里的 `ops` 就是初始 interest set。之后用 `key.interestOps(新值)` 改兴趣——例如写不完时加上 `OP_WRITE`，写完再去掉。
+
+对照另一半：**ready set**（就绪集，`readyOps`）是 Selector 问过内核之后的结果——「这几类现在真的就绪了」。`key.isReadable()` / `isWritable()` / `isAcceptable()` / `isConnectable()` 测的就是 ready set 里有没有对应位。你改不了 ready set，只能改 interest set。
+
+Javadoc 原句：*The interest set determines which operation categories will be tested for readiness the next time one of the selector's selection methods is invoked.*
+
 ## 1. 事件类型
 
 | 常量 | 含义 | 谁注册 |
@@ -13,7 +21,7 @@ Selector 是 NIO 网络编程的心脏。模型是：**注册兴趣 → 阻塞/�
 
 **不要默认一直注册 `OP_WRITE`。** Socket 发送缓冲空闲时它几乎总是就绪，会造成 CPU 空转。只在 `write` 返回 0 / 没写完时打开，写完立刻去掉。
 
-兴趣可以组合：`OP_READ | OP_WRITE`。
+兴趣（interest set）可以组合：`OP_READ | OP_WRITE`。`register` 和 `interestOps` 吃的都是这组 bitmask。
 
 ## 2. 标准循环
 
@@ -123,6 +131,7 @@ Java Selector 在 Linux 上是 **level-triggered（水平触发）**：缓冲里
 ## 9. 本阶段验收
 
 - 为什么必须 `remove` selected key？
+- interest set 和 ready set 分别是谁写的？「改兴趣」改的是哪一个？
 - 什么时候才注册 `OP_WRITE`？
 - `read == 0` 和 `read == -1` 分别怎么办？
 - 为什么聊天室必须自己按行切包？
