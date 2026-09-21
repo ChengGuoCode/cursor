@@ -94,7 +94,7 @@ TCP 粘包 / 拆包：NIO 不会帮你按「一条消息」切。必须在应用
 
 - 定长
 - 分隔符（本仓库 Echo / Chat 用 `\n`）
-- 长度字段（推荐生产协议）
+- 长度字段（推荐生产协议，见 `LengthPrefixedCodec` 与 [11-tcp-udp-framing.md](11-tcp-udp-framing.md)）
 
 ## 6. 水平触发
 

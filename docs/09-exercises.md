@@ -16,7 +16,7 @@
 用循环 `read/write`、`transferTo`、`Files.copy` 各写一个方法，复制 8MB 随机文件，断言内容一致。记录耗时，但不把耗时当正确性标准。
 
 **B4. 定长头协议**  
-4 字节大端长度 + payload。用 Gather 写、Scatter 读。payload 为 0 和恰好填满缓冲两种都要测。
+4 字节大端长度 + payload。用 Gather 写、Scatter 读。payload 为 0 和恰好填满缓冲两种都要测。对照 `LengthPrefixedCodec`：一次 feed 里粘两帧、以及半个 header，都要能拆对。
 
 ## 网络（阶段 3）
 

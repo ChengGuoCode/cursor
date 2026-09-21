@@ -38,6 +38,7 @@ java -cp out com.nio.learn.LabRunner list
 | 0 心智模型 | 能讲清 BIO 阻塞在哪、NIO 为什么能一个线程管多个连接 | [01-overview.md](docs/01-overview.md) | — | — |
 | 1 Buffer | 能画出 `position / limit / capacity`，独立写出 `put → flip → get → compact` | [02-buffer.md](docs/02-buffer.md) | `buffer/` | `BufferBasicsTest` |
 | 2 Channel | 能用 `FileChannel` 复制文件，能解释 Scatter/Gather、mmap | [03-channel.md](docs/03-channel.md) | `channel/` | `FileChannelLabTest` |
+| 2b 消息边界 | 能讲清 TCP 粘包/半包、长度字段划界、UDP 为何不粘包仍可能帧不完整 | [11-tcp-udp-framing.md](docs/11-tcp-udp-framing.md) | `framing/` | `FramingLabTest` |
 | 3 Selector | 能手写非阻塞 Echo，理解 `interestOps` 与 `selectedKeys` | [04-selector.md](docs/04-selector.md) | `selector/` | `NioEchoServerTest` |
 | 4 NIO.2 | 能用 `Path`/`Files`/`WatchService` 处理文件系统 | [05-nio2.md](docs/05-nio2.md) | `nio2/` | `PathFilesLabTest` |
 | 5 AIO | 能对比 CompletionHandler 与 Future，知道适用场景 | [06-aio.md](docs/06-aio.md) | `aio/` | `AsyncFileLabTest` |
@@ -58,6 +59,7 @@ src/main/java/com/nio/learn/
   LabRunner.java               统一入口：list / buffer / echo / chat / reactor ...
   buffer/                      ByteBuffer 状态机、堆外缓冲、Scatter/Gather
   channel/                     文件复制、内存映射、UDP
+  framing/                     长度字段编解码、TCP 粘包、UDP 边界、finishConnect
   selector/                    非阻塞 Echo、多客户端聊天室
   nio2/                        Path / Files / WatchService
   aio/                         异步文件读写
@@ -78,6 +80,7 @@ src/test/java/com/nio/learn/    每个阶段的可重复断言
 | `copy` | `FileChannel` 复制文件 |
 | `mmap` | 内存映射读写 |
 | `udp` | `DatagramChannel` 回显 |
+| `framing` | TCP 粘包/半包拆帧、UDP 报文边界、非阻塞 `finishConnect` |
 | `echo` | Selector 非阻塞 Echo 服务端 + 客户端 |
 | `chat` | 多客户端聊天室（一行协议） |
 | `nio2` | Path / Files 列目录、读写、拷贝 |
@@ -141,5 +144,6 @@ BIO 是「一个连接一个线程，阻塞在 `read()`」。NIO 是「少量线
 - 在纸上画出 `ByteBuffer` 三次操作后的 `position/limit/capacity`
 - 用 Selector 写出「多客户端、按行回显」的服务
 - 说清 `clear` 和 `compact` 的区别、为何写不出去时要注册 `OP_WRITE`
+- 说明 TCP 粘包 / 半包是什么，以及长度字段如何划界
 - 对比 BIO / NIO / AIO 各适合什么流量模型
 - 指出 DirectBuffer、空转 Selector、忘记 `remove` selected key 三类线上隐患

@@ -72,7 +72,10 @@ int n = client.read(buf);                 // 阻塞直到有数据
 ```java
 server.configureBlocking(false);
 SocketChannel client = server.accept();   // 没有连接时返回 null，不是阻塞
-client.configureBlocking(false);
+if (client == null) {
+    return;                               // 没有连接：不要对 null 做任何事
+}
+client.configureBlocking(false);          // accept 出来的通道默认仍是阻塞的
 int n = client.read(buf);                 // 没数据返回 0
 ```
 
@@ -80,12 +83,14 @@ int n = client.read(buf);                 // 没数据返回 0
 
 ```java
 channel.configureBlocking(false);
-channel.connect(address);       // 立即返回
-// 等 OP_CONNECT 就绪后
-channel.finishConnect();
+boolean immediate = channel.connect(address);  // 只发起握手，可能返回 false
+if (!immediate) {
+    // 注册 OP_CONNECT，就绪后再：
+    channel.finishConnect();                   // 收尾；失败在这里变成 IOException
+}
 ```
 
-忘记 `finishConnect()` 是客户端常见坑。
+忘记 `finishConnect()` 是客户端常见坑。展开见 [11-tcp-udp-framing.md](11-tcp-udp-framing.md)。
 
 ## 4. DatagramChannel
 
@@ -95,7 +100,9 @@ UDP 无连接。可以 `bind` 后 `receive`/`send`，也可以 `connect` 到对�
 
 - 一次 `receive` 一条报文，不会像 TCP 那样粘包。
 - 仍然可能丢包、乱序、重复。
+- 接收 Buffer 小于数据报时，多出来的字节被丢弃。
 - 可以注册 Selector（`OP_READ`）。
+- 若你在应用层自己把业务消息切成多个数据报，仍要处理不完整帧（缺包 / 乱序），见 [11-tcp-udp-framing.md](11-tcp-udp-framing.md)。
 
 ## 5. Scatter / Gather 在 Channel 上
 
@@ -117,10 +124,14 @@ UDP 无连接。可以 `bind` 后 `receive`/`send`，也可以 `connect` 到对�
 2. `LabRunner mmap`：改文件后看映射是否立即可见（共享模式）。
 3. `LabRunner udp`：本机发一条报文并回显。
 4. 读 `FileCopyDemo` 里三种复制路径的注释。
+5. `LabRunner framing`：TCP 粘包拆帧、UDP 两次 send 仍是两次 receive。
 
 ## 8. 本阶段验收
+
+先自己答，再对照 [11-tcp-udp-framing.md](11-tcp-udp-framing.md)。
 
 - `FileChannel` 为何不能进 Selector？
 - 非阻塞 `accept()` 返回 `null` 时该做什么？
 - `connect` 之后为什么还要 `finishConnect`？
 - UDP 为什么没有 TCP 那种「粘包」问题，却仍要处理不完整业务帧（如果你自己在应用层拼消息）？
+- 什么是 TCP 粘包 / 半包，应用层怎么划界？
