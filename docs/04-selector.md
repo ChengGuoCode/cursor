@@ -39,6 +39,67 @@ loop 线程
 
 `select` 返回后，loop 线程按 ready set 分发；处理完改 interest set，再回去 `select`。Selector 只负责「等到了喊你」，不负责「现在该解码还是该关连接」。
 
+`SelectionKey.toString()` 里的数字是 bitmask，不是神秘 ID：
+
+| 十进制 | 位 | 常量 |
+| --- | --- | --- |
+| 1 | `1 << 0` | `OP_READ` |
+| 4 | `1 << 2` | `OP_WRITE` |
+| 8 | `1 << 3` | `OP_CONNECT` |
+| 16 | `1 << 4` | `OP_ACCEPT` |
+
+所以日志里 `interestOps=16, readyOps=16` 就是「我在听 ACCEPT，而且现在 ACCEPT 就绪了」；`interestOps=1, readyOps=1` 就是「我在听 READ，而且现在可读」。
+
+## 0.1 对照一次 `LabRunner echo` 的时间线
+
+主线程跑 `LabRunner echo`：先 `NioEchoServer.start`（拉起 `loop` 线程），再 `NioEchoClient.sendLines("hello", "NIO")`。  
+`loop` 线程里在 `select` 前后打日志，一次真实运行会类似：
+
+```
+wait selector                          // loop：select 里睡觉，此时还没有任何连接
+echo server 127.0.0.1:53414            // 主线程：start 返回，开始连客户端
+wait exit
+selectionKey: ...ServerSocketChannel... interestOps=16, readyOps=16
+execute over
+wait selector
+wait exit
+selectionKey: ...SocketChannel[...remote=...53426] interestOps=1, readyOps=1
+execute over
+wait selector
+wait exit
+selectionKey: ...SocketChannel... interestOps=1, readyOps=1
+execute over
+wait selector
+wait exit
+selectionKey: ...SocketChannel... interestOps=1, readyOps=1
+execute over
+wait selector
+echo reply: hello                      // 主线程：客户端已经收齐两行
+echo reply: NIO
+```
+
+两条线程交叉着走：
+
+1. **`wait selector` 先于 `echo server`**  
+   `start()` 里先 `register(OP_ACCEPT)`、再 `loopThread.start()`，然后主线程才打印端口。`loop` 已经堵在 `select` 上。没有连接时它就睡，CPU 接近 0。把超时改成 `select(1000000000)` 只是避免每 200ms 空醒一次把日志打乱；有事件时一样立刻返回。
+
+2. **第一次 `wait exit`：ServerSocketChannel，ops=16**  
+   客户端 `SocketChannel.open(地址)` 完成 TCP 握手，连接进了 backlog。Selector 发现监听通道 ACCEPT 就绪。`loop` 调 `accept()`，得到已连接的 `SocketChannel`（对端端口 53426），`configureBlocking(false)`，`register(OP_READ, new Conn())`。  
+   这次循环 **只 accept，不读数据**。新通道的兴趣是 1（`OP_READ`），还没进这一轮 `selectedKeys`。
+
+3. **后面三次 `SocketChannel` ops=1**  
+   客户端会先连续 `write("hello\n")`、`write("NIO\n")`，再阻塞 `read` 等两行回显。每一次 `wait exit` 只表示：**内核接收缓冲现在有数据（或对端关闭），可以 `read` 而不阻塞。**  
+   不表示「到了一条完整消息」，更不保证「一次客户端 `write` = 一次 `OP_READ`」。所以两行业务数据出现 **三次** 可读是正常的：可能是两次发送被 TCP 切成三段，也可能其中一次 `read` 得到 0 字节（注册后立刻就绪）。  
+   每次 `read` 都把字节追加进这个连接自己的 `Conn.in`，`drainLines` 碰到 `\n` 才拷到 `Conn.out` 并 `write` 回去。半包就 `compact` 留着等下一次。
+
+4. **`echo reply` 出现在最后一次 `wait selector` 之后**  
+   说明两行都已经写回客户端。主线程的 `sendLines` 凑齐 `"hello\n"` 和 `"NIO\n"` 后返回，`printDemo` 才打印。此时 `loop` 再次睡在 `select` 上——没有第四个就绪事件，它就继续等。
+
+5. **进程随后退出**  
+   `runEcho` 的 try-with-resources 关掉 server：`wakeup()` 打断 `select`，`loop` 结束。客户端 `sendLines` 返回时也会关掉自己的通道；若关得比 server 早，服务端还会再收到一次 `OP_READ` 且 `read == -1`，走 `closeKey`。你贴的日志停在打印回复，所以没画这一步。
+
+要确认每一次可读到底拷了几个字节，在 `read()` 里打印 `n` 和 `new String(conn.in 里刚读到的字节)`。不要根据 `selectedKeys` 的次数去猜消息边界。
+
 ## 1. 事件类型
 
 | 常量 | 含义 | 谁注册 |
