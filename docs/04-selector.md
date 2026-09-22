@@ -161,6 +161,20 @@ while (running) {
 
 忘了 `remove` 的后果：这把 key 一直留在 selected 集合里，下一轮就算没有新事件也会再被处理一遍，状态机错乱，严重时空转打满 CPU。
 
+对应 JDK `sun.nio.ch.SelectorImpl` 里的字段（你在源码里看到的那五个）：
+
+```java
+keys                = ConcurrentHashMap.newKeySet();           // 内部：全部注册
+selectedKeys        = new HashSet<>();                         // 内部：本轮就绪
+publicKeys          = Collections.unmodifiableSet(keys);       // selector.keys()
+publicSelectedKeys  = Util.ungrowableSet(selectedKeys);        // selector.selectedKeys()
+cancelledKeys       = new ArrayDeque<>();                      // cancel 后排队，下次 select 才真正摘掉
+```
+
+`selector.selectedKeys()` 返回 `publicSelectedKeys` 是刻意的：**同一份 HashSet 的受限视图，不是拷贝。** `Util.ungrowableSet` 允许 `remove` / `iterator.remove` / `clear`，`add` 直接 `UnsupportedOperationException`。这样 `loop` 能把自己处理完的 key 拿掉，但不能伪造「又就绪了一个通道」。`selector.keys()` 连 remove 都不让，防止你从外面把还活着的注册拆掉。
+
+`cancel()` / `channel.close()` 不会立刻改 epoll。key 先丢进 `cancelledKeys`，下一次 `select` 开头的 `processDeregisterQueue()` 才从 `keys`、`selectedKeys` 和内核注册里删掉。
+
 ## 3. SelectionKey 上挂什么
 
 `key.attachment()` 用来挂连接私有状态，例如：
