@@ -144,6 +144,23 @@ while (running) {
 2. 处理前检查 `key.isValid()`。`close` 或 `cancel` 后还去 `isReadable()` 会出问题。
 3. `accept` 得到的 `SocketChannel` 必须设为非阻塞再 `register`。
 
+`selectedKeys` **不是**「每次连接 / 每次读写都 insert 一条」的事件队列。Selector 里有三本账：
+
+| 集合 | API | 里面是什么 |
+| --- | --- | --- |
+| 全部注册 | `selector.keys()` | 每个 Channel **一把** `SelectionKey`，`register` 时放进去，一直活到 cancel/close |
+| 本次就绪 | `selector.selectedKeys()` | 上一轮 `select` 认为 **现在可以干活** 的那些 key（`keys()` 的子集） |
+| 已取消 | 内部 | `cancel()` 之后，下次 `select` 时真正摘掉 |
+
+所以：
+
+- 新连接 `register` 时，key 进的是 `keys()`，**不是**立刻进 `selectedKeys`。要等下一次 `select` 发现它就绪。
+- 同一条连接无论可读、可写还是两者都就绪，都是 **同一把 key**。差别在 `readyOps` 的位，不在「插了几行」。`if (isReadable())` 和 `if (isWritable())` 是在检查这 **一个** 对象上的两个位。
+- `select` 发现某通道就绪：key 还不在 selected 集合里就加进去；已经在了就把新的就绪位 **或** 上去，不会再 new 一把 key。
+- `loop` 里 `it.next()` + `it.remove()` 是从 **本轮就绪集合** 拿走，不是销毁这条连接。连接还在 `keys()` 里。下次再就绪，`select` 会把 **同一把** key 再放回 `selectedKeys`。
+
+忘了 `remove` 的后果：这把 key 一直留在 selected 集合里，下一轮就算没有新事件也会再被处理一遍，状态机错乱，严重时空转打满 CPU。
+
 ## 3. SelectionKey 上挂什么
 
 `key.attachment()` 用来挂连接私有状态，例如：
