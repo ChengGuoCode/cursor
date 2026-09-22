@@ -10,6 +10,35 @@ Selector 是 NIO 网络编程的心脏。模型是：**注册兴趣 → 阻塞/�
 
 Javadoc 原句：*The interest set determines which operation categories will be tested for readiness the next time one of the selector's selection methods is invoked.*
 
+## 0. Selector 做什么、谁在干活
+
+Selector **不是**执行 accept / read / write 的那个东西，也 **不是**业务状态机。它是一个 **多路复用器（multiplexer）**：把很多 Channel 的「等就绪」合并成一次阻塞调用。Linux 上通常是对 `epoll` 的封装。
+
+本仓库里真正循环干活的是 `NioEchoServer` 的 `loop` 线程（Reactor 事件循环）：
+
+```
+loop 线程
+    │
+    ├─ selector.select(200)     没有就绪事件时，这条线程睡在内核里
+    │                           Selector 只回答：「这几个 Channel 的这几类操作现在可以做了」
+    │
+    └─ accept / read / write    还是 loop 线程自己调 Channel API
+                                半包、按行切包、改 interestOps，也都在这条线程里
+```
+
+没有 Selector，要么一条连接一条线程堵在 `read()`（BIO），要么自己忙轮询所有 Channel。Selector 的作用就是：**一条（或少数几条）线程，堵住等「谁就绪」，醒来只处理就绪的那些。**
+
+不要把它理解成状态机。状态分散在别处：
+
+| 看起来像状态的东西 | 实际是什么 |
+| --- | --- |
+| Selector | 等待器 + 三本账：全部 key / 本次就绪的 selected-keys / 已取消的 key |
+| `interestOps` | 这根连接「下次想被通知哪几类操作」，很小的兴趣开关，不是协议状态 |
+| `Conn.in` / `Conn.out` | 每条连接的累计缓冲，半包活在这里 |
+| `drainLines` 找 `\n` | 这才接近协议状态机：够一行就切，不够就留下 |
+
+`select` 返回后，loop 线程按 ready set 分发；处理完改 interest set，再回去 `select`。Selector 只负责「等到了喊你」，不负责「现在该解码还是该关连接」。
+
 ## 1. 事件类型
 
 | 常量 | 含义 | 谁注册 |
@@ -130,6 +159,7 @@ Java Selector 在 Linux 上是 **level-triggered（水平触发）**：缓冲里
 
 ## 9. 本阶段验收
 
+- Selector 和 `loop` 线程各自干什么？为什么 Selector 不是状态机？
 - 为什么必须 `remove` selected key？
 - interest set 和 ready set 分别是谁写的？「改兴趣」改的是哪一个？
 - 什么时候才注册 `OP_WRITE`？
