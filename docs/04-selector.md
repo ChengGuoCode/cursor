@@ -257,3 +257,47 @@ Java Selector 在 Linux 上是 **level-triggered（水平触发）**：缓冲里
 - 什么时候才注册 `OP_WRITE`？
 - `read == 0` 和 `read == -1` 分别怎么办？
 - 为什么聊天室必须自己按行切包？
+
+先自己答。下面是常见答法哪里不够、标准说法是什么。
+
+### 为什么必须 remove selected key？
+
+常见答：「Selector 不会自动清理，不手动移除下次还会拿到。」  
+方向对，没说清楚后果和 `remove` 删的是什么。
+
+`selectedKeys` 是本轮就绪名单，不是事件日志。`select()` 只往里面加/更新，**从不帮你清空**。忘了 `remove`：
+
+- 这把 key 一直留在集合里，下一轮就算没有新 I/O 也会再走一遍 `isReadable` / `isWritable`。
+- 已经在集合里的 key，新就绪位会被 **或** 上去，旧的 readyOps 可能还在，误判「还能读/写」。
+- 和水平触发叠在一起，容易空转打满 CPU。
+
+`remove` 只是把 key 从 **本轮名单** 拿走。连接还在 `keys()` 里；下次真就绪了，`select` 再把同一把 key 放回来。
+
+### 什么时候才注册 OP_WRITE？
+
+常见答：「上次没写完，下次接着写。」  
+触发条件对，缺了「为什么不能一直挂着」和「写完必须摘掉」。
+
+只在 `write` 没写完时打开：`buf.hasRemaining()` 或这次 `write` 返回 0（发送缓冲满了）。写完立刻 `interestOps(OP_READ)`，去掉 `OP_WRITE`。
+
+**不要**在 `accept` / `connect` 时默认挂上，也 **不要**一直留着。Socket 发送缓冲空闲时 `OP_WRITE` 几乎总是就绪，`select` 会立刻返回，CPU 100%。这是 Selector 第一常见坑。
+
+### `read == 0` 和 `read == -1` 分别怎么办？
+
+常见答：「0 则 Selector 继续等数据，-1 则关闭 key。」  
+`0` / `-1` 的含义对；「让 Selector 等」和「关闭 key」两个说法不准确。
+
+| 返回值 | 含义 | 正确动作 |
+| --- | --- | --- |
+| `> 0` | 拷到了这么多字节 | `flip` 后解码，半包 `compact` |
+| `== 0` | 非阻塞下此刻没有数据 | **忽略**，回到 `select`。不用通知 Selector，也不要当作出错或关闭 |
+| `< 0`（`-1`） | 对端关闭了输出（EOF） | **关掉 Channel**（`channel.close()`）。key 会随之 cancel。只 `cancel` 不 close 会泄漏 FD |
+
+`read == 0` 不是一种你要发的指令，是「这次没事」。`NioEchoServer` 对 `n < 0` 走 `closeKey`（关的是 channel）；`n == 0` 不会单独处理，接着 `flip`/`drain` 也只是空转一次累计区，然后回 `select`。
+
+### 为什么聊天室必须自己按行切包？
+
+常见答：「Channel 处理数据的边界不等于业务数据边界。」  
+方向对，但 Channel **没有**消息边界可对齐。更准确的原因是 **TCP 是字节流**。
+
+`Channel.read()` 这一次返回的是内核接收缓冲里此刻能拷走的任意一段：可能半行、一行、两行粘在一起。Selector / Channel 不知道聊天室以 `\n` 为一句。所以每个连接必须自己留 inbound 累计区，扫到 `\n` 再广播；半包 `compact` 留下。这就是粘包 / 半包。不按行切，广播出去的会是半句话或两句粘成一句。
