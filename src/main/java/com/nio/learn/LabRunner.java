@@ -7,6 +7,9 @@ import com.nio.learn.buffer.ScatterGatherDemo;
 import com.nio.learn.channel.FileCopyDemo;
 import com.nio.learn.channel.MemoryMappedFileDemo;
 import com.nio.learn.channel.UdpEchoDemo;
+import com.nio.learn.framing.NonBlockingConnectDemo;
+import com.nio.learn.framing.TcpStickyPacketDemo;
+import com.nio.learn.framing.UdpDatagramBoundaryDemo;
 import com.nio.learn.nio2.PathFilesDemo;
 import com.nio.learn.nio2.WatchServiceDemo;
 import com.nio.learn.reactor.SingleThreadReactor;
@@ -39,6 +42,7 @@ public final class LabRunner {
             }
             case "mmap" -> MemoryMappedFileDemo.printDemo();
             case "udp" -> UdpEchoDemo.printDemo();
+            case "framing" -> runFraming();
             case "echo" -> runEcho();
             case "chat", "chat-server" -> runChatServer();
             case "nio2" -> PathFilesDemo.printDemo();
@@ -52,6 +56,12 @@ public final class LabRunner {
                 System.exit(1);
             }
         }
+    }
+
+    private static void runFraming() throws Exception {
+        TcpStickyPacketDemo.printDemo();
+        UdpDatagramBoundaryDemo.printDemo();
+        NonBlockingConnectDemo.printDemo();
     }
 
     private static void runEcho() throws Exception {
@@ -89,6 +99,7 @@ public final class LabRunner {
                   copy       FileChannel 三种复制
                   mmap       内存映射
                   udp        DatagramChannel 回显
+                  framing    TCP 粘包/半包拆帧、UDP 边界、finishConnect
                   echo       Selector Echo（进程内客户端）
                   chat       聊天室（默认 9001，用 nc 连）
                   nio2       Path / Files

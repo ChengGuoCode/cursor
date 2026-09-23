@@ -34,7 +34,7 @@ Netty 没有推翻 NIO，它把第 8 章的坑做成了默认行为。
 出站：业务对象 → Encoder → ByteBuf 写出
 ```
 
-你在 Echo 里写的「先找 `\n`，再 echo」应当拆成 Decoder + Handler。职责分离之后才能单测业务而不起端口。
+你在 Echo 里写的「先找 `\n`，再 echo」应当拆成 Decoder + Handler。职责分离之后才能单测业务而不起端口。本仓库 `LengthPrefixedCodec.Decoder` 就是 Decoder 这一层的裸写；Netty 的 `LengthFieldBasedFrameDecoder` 做同一件事。详见 [11-tcp-udp-framing.md](11-tcp-udp-framing.md)。
 
 ## 4. 建议的后续路径
 

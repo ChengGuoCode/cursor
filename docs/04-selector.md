@@ -2,6 +2,104 @@
 
 Selector 是 NIO 网络编程的心脏。模型是：**注册兴趣 → 阻塞/超时等待就绪 → 逐个处理 → 改兴趣 → 再 wait**。
 
+这里的「兴趣」不是日常用语，对应 JDK 原文 **interest set**（兴趣集），读写它的 API 是 `SelectionKey.interestOps` / `interestOps(int)`。含义是：你告诉 Selector，这个 Channel **下一次 `select` 时要检测哪几类操作是否就绪**。四类操作就是下面的 `OP_ACCEPT` / `OP_CONNECT` / `OP_READ` / `OP_WRITE`。
+
+`channel.register(selector, ops)` 里的 `ops` 就是初始 interest set。之后用 `key.interestOps(新值)` 改兴趣——例如写不完时加上 `OP_WRITE`，写完再去掉。
+
+对照另一半：**ready set**（就绪集，`readyOps`）是 Selector 问过内核之后的结果——「这几类现在真的就绪了」。`key.isReadable()` / `isWritable()` / `isAcceptable()` / `isConnectable()` 测的就是 ready set 里有没有对应位。你改不了 ready set，只能改 interest set。
+
+Javadoc 原句：*The interest set determines which operation categories will be tested for readiness the next time one of the selector's selection methods is invoked.*
+
+## 0. Selector 做什么、谁在干活
+
+Selector **不是**执行 accept / read / write 的那个东西，也 **不是**业务状态机。它是一个 **多路复用器（multiplexer）**：把很多 Channel 的「等就绪」合并成一次阻塞调用。Linux 上通常是对 `epoll` 的封装。
+
+本仓库里真正循环干活的是 `NioEchoServer` 的 `loop` 线程（Reactor 事件循环）：
+
+```
+loop 线程
+    │
+    ├─ selector.select(200)     没有就绪事件时，这条线程睡在内核里
+    │                           Selector 只回答：「这几个 Channel 的这几类操作现在可以做了」
+    │
+    └─ accept / read / write    还是 loop 线程自己调 Channel API
+                                半包、按行切包、改 interestOps，也都在这条线程里
+```
+
+没有 Selector，要么一条连接一条线程堵在 `read()`（BIO），要么自己忙轮询所有 Channel。Selector 的作用就是：**一条（或少数几条）线程，堵住等「谁就绪」，醒来只处理就绪的那些。**
+
+不要把它理解成状态机。状态分散在别处：
+
+| 看起来像状态的东西 | 实际是什么 |
+| --- | --- |
+| Selector | 等待器 + 三本账：全部 key / 本次就绪的 selected-keys / 已取消的 key |
+| `interestOps` | 这根连接「下次想被通知哪几类操作」，很小的兴趣开关，不是协议状态 |
+| `Conn.in` / `Conn.out` | 每条连接的累计缓冲，半包活在这里 |
+| `drainLines` 找 `\n` | 这才接近协议状态机：够一行就切，不够就留下 |
+
+`select` 返回后，loop 线程按 ready set 分发；处理完改 interest set，再回去 `select`。Selector 只负责「等到了喊你」，不负责「现在该解码还是该关连接」。
+
+`SelectionKey.toString()` 里的数字是 bitmask，不是神秘 ID：
+
+| 十进制 | 位 | 常量 |
+| --- | --- | --- |
+| 1 | `1 << 0` | `OP_READ` |
+| 4 | `1 << 2` | `OP_WRITE` |
+| 8 | `1 << 3` | `OP_CONNECT` |
+| 16 | `1 << 4` | `OP_ACCEPT` |
+
+所以日志里 `interestOps=16, readyOps=16` 就是「我在听 ACCEPT，而且现在 ACCEPT 就绪了」；`interestOps=1, readyOps=1` 就是「我在听 READ，而且现在可读」。
+
+## 0.1 对照一次 `LabRunner echo` 的时间线
+
+主线程跑 `LabRunner echo`：先 `NioEchoServer.start`（拉起 `loop` 线程），再 `NioEchoClient.sendLines("hello", "NIO")`。  
+`loop` 线程里在 `select` 前后打日志，一次真实运行会类似：
+
+```
+wait selector                          // loop：select 里睡觉，此时还没有任何连接
+echo server 127.0.0.1:53414            // 主线程：start 返回，开始连客户端
+wait exit
+selectionKey: ...ServerSocketChannel... interestOps=16, readyOps=16
+execute over
+wait selector
+wait exit
+selectionKey: ...SocketChannel[...remote=...53426] interestOps=1, readyOps=1
+execute over
+wait selector
+wait exit
+selectionKey: ...SocketChannel... interestOps=1, readyOps=1
+execute over
+wait selector
+wait exit
+selectionKey: ...SocketChannel... interestOps=1, readyOps=1
+execute over
+wait selector
+echo reply: hello                      // 主线程：客户端已经收齐两行
+echo reply: NIO
+```
+
+两条线程交叉着走：
+
+1. **`wait selector` 先于 `echo server`**  
+   `start()` 里先 `register(OP_ACCEPT)`、再 `loopThread.start()`，然后主线程才打印端口。`loop` 已经堵在 `select` 上。没有连接时它就睡，CPU 接近 0。把超时改成 `select(1000000000)` 只是避免每 200ms 空醒一次把日志打乱；有事件时一样立刻返回。
+
+2. **第一次 `wait exit`：ServerSocketChannel，ops=16**  
+   客户端 `SocketChannel.open(地址)` 完成 TCP 握手，连接进了 backlog。Selector 发现监听通道 ACCEPT 就绪。`loop` 调 `accept()`，得到已连接的 `SocketChannel`（对端端口 53426），`configureBlocking(false)`，`register(OP_READ, new Conn())`。  
+   这次循环 **只 accept，不读数据**。新通道的兴趣是 1（`OP_READ`），还没进这一轮 `selectedKeys`。
+
+3. **后面三次 `SocketChannel` ops=1**  
+   客户端会先连续 `write("hello\n")`、`write("NIO\n")`，再阻塞 `read` 等两行回显。每一次 `wait exit` 只表示：**内核接收缓冲现在有数据（或对端关闭），可以 `read` 而不阻塞。**  
+   不表示「到了一条完整消息」，更不保证「一次客户端 `write` = 一次 `OP_READ`」。所以两行业务数据出现 **三次** 可读是正常的：可能是两次发送被 TCP 切成三段，也可能其中一次 `read` 得到 0 字节（注册后立刻就绪）。  
+   每次 `read` 都把字节追加进这个连接自己的 `Conn.in`，`drainLines` 碰到 `\n` 才拷到 `Conn.out` 并 `write` 回去。半包就 `compact` 留着等下一次。
+
+4. **`echo reply` 出现在最后一次 `wait selector` 之后**  
+   说明两行都已经写回客户端。主线程的 `sendLines` 凑齐 `"hello\n"` 和 `"NIO\n"` 后返回，`printDemo` 才打印。此时 `loop` 再次睡在 `select` 上——没有第四个就绪事件，它就继续等。
+
+5. **进程随后退出**  
+   `runEcho` 的 try-with-resources 关掉 server：`wakeup()` 打断 `select`，`loop` 结束。客户端 `sendLines` 返回时也会关掉自己的通道；若关得比 server 早，服务端还会再收到一次 `OP_READ` 且 `read == -1`，走 `closeKey`。你贴的日志停在打印回复，所以没画这一步。
+
+要确认每一次可读到底拷了几个字节，在 `read()` 里打印 `n` 和 `new String(conn.in 里刚读到的字节)`。不要根据 `selectedKeys` 的次数去猜消息边界。
+
 ## 1. 事件类型
 
 | 常量 | 含义 | 谁注册 |
@@ -13,7 +111,7 @@ Selector 是 NIO 网络编程的心脏。模型是：**注册兴趣 → 阻塞/�
 
 **不要默认一直注册 `OP_WRITE`。** Socket 发送缓冲空闲时它几乎总是就绪，会造成 CPU 空转。只在 `write` 返回 0 / 没写完时打开，写完立刻去掉。
 
-兴趣可以组合：`OP_READ | OP_WRITE`。
+兴趣（interest set）可以组合：`OP_READ | OP_WRITE`。`register` 和 `interestOps` 吃的都是这组 bitmask。
 
 ## 2. 标准循环
 
@@ -45,6 +143,37 @@ while (running) {
 1. **`selectedKeys` 不会自动清除**，处理完必须 `iterator.remove()`。
 2. 处理前检查 `key.isValid()`。`close` 或 `cancel` 后还去 `isReadable()` 会出问题。
 3. `accept` 得到的 `SocketChannel` 必须设为非阻塞再 `register`。
+
+`selectedKeys` **不是**「每次连接 / 每次读写都 insert 一条」的事件队列。Selector 里有三本账：
+
+| 集合 | API | 里面是什么 |
+| --- | --- | --- |
+| 全部注册 | `selector.keys()` | 每个 Channel **一把** `SelectionKey`，`register` 时放进去，一直活到 cancel/close |
+| 本次就绪 | `selector.selectedKeys()` | 上一轮 `select` 认为 **现在可以干活** 的那些 key（`keys()` 的子集） |
+| 已取消 | 内部 | `cancel()` 之后，下次 `select` 时真正摘掉 |
+
+所以：
+
+- 新连接 `register` 时，key 进的是 `keys()`，**不是**立刻进 `selectedKeys`。要等下一次 `select` 发现它就绪。
+- 同一条连接无论可读、可写还是两者都就绪，都是 **同一把 key**。差别在 `readyOps` 的位，不在「插了几行」。`if (isReadable())` 和 `if (isWritable())` 是在检查这 **一个** 对象上的两个位。
+- `select` 发现某通道就绪：key 还不在 selected 集合里就加进去；已经在了就把新的就绪位 **或** 上去，不会再 new 一把 key。
+- `loop` 里 `it.next()` + `it.remove()` 是从 **本轮就绪集合** 拿走，不是销毁这条连接。连接还在 `keys()` 里。下次再就绪，`select` 会把 **同一把** key 再放回 `selectedKeys`。
+
+忘了 `remove` 的后果：这把 key 一直留在 selected 集合里，下一轮就算没有新事件也会再被处理一遍，状态机错乱，严重时空转打满 CPU。
+
+对应 JDK `sun.nio.ch.SelectorImpl` 里的字段（你在源码里看到的那五个）：
+
+```java
+keys                = ConcurrentHashMap.newKeySet();           // 内部：全部注册
+selectedKeys        = new HashSet<>();                         // 内部：本轮就绪
+publicKeys          = Collections.unmodifiableSet(keys);       // selector.keys()
+publicSelectedKeys  = Util.ungrowableSet(selectedKeys);        // selector.selectedKeys()
+cancelledKeys       = new ArrayDeque<>();                      // cancel 后排队，下次 select 才真正摘掉
+```
+
+`selector.selectedKeys()` 返回 `publicSelectedKeys` 是刻意的：**同一份 HashSet 的受限视图，不是拷贝。** `Util.ungrowableSet` 允许 `remove` / `iterator.remove` / `clear`，`add` 直接 `UnsupportedOperationException`。这样 `loop` 能把自己处理完的 key 拿掉，但不能伪造「又就绪了一个通道」。`selector.keys()` 连 remove 都不让，防止你从外面把还活着的注册拆掉。
+
+`cancel()` / `channel.close()` 不会立刻改 epoll。key 先丢进 `cancelledKeys`，下一次 `select` 开头的 `processDeregisterQueue()` 才从 `keys`、`selectedKeys` 和内核注册里删掉。
 
 ## 3. SelectionKey 上挂什么
 
@@ -94,7 +223,7 @@ TCP 粘包 / 拆包：NIO 不会帮你按「一条消息」切。必须在应用
 
 - 定长
 - 分隔符（本仓库 Echo / Chat 用 `\n`）
-- 长度字段（推荐生产协议）
+- 长度字段（推荐生产协议，见 `LengthPrefixedCodec` 与 [11-tcp-udp-framing.md](11-tcp-udp-framing.md)）
 
 ## 6. 水平触发
 
@@ -122,7 +251,53 @@ Java Selector 在 Linux 上是 **level-triggered（水平触发）**：缓冲里
 
 ## 9. 本阶段验收
 
+- Selector 和 `loop` 线程各自干什么？为什么 Selector 不是状态机？
 - 为什么必须 `remove` selected key？
+- interest set 和 ready set 分别是谁写的？「改兴趣」改的是哪一个？
 - 什么时候才注册 `OP_WRITE`？
 - `read == 0` 和 `read == -1` 分别怎么办？
 - 为什么聊天室必须自己按行切包？
+
+先自己答。下面是常见答法哪里不够、标准说法是什么。
+
+### 为什么必须 remove selected key？
+
+常见答：「Selector 不会自动清理，不手动移除下次还会拿到。」  
+方向对，没说清楚后果和 `remove` 删的是什么。
+
+`selectedKeys` 是本轮就绪名单，不是事件日志。`select()` 只往里面加/更新，**从不帮你清空**。忘了 `remove`：
+
+- 这把 key 一直留在集合里，下一轮就算没有新 I/O 也会再走一遍 `isReadable` / `isWritable`。
+- 已经在集合里的 key，新就绪位会被 **或** 上去，旧的 readyOps 可能还在，误判「还能读/写」。
+- 和水平触发叠在一起，容易空转打满 CPU。
+
+`remove` 只是把 key 从 **本轮名单** 拿走。连接还在 `keys()` 里；下次真就绪了，`select` 再把同一把 key 放回来。
+
+### 什么时候才注册 OP_WRITE？
+
+常见答：「上次没写完，下次接着写。」  
+触发条件对，缺了「为什么不能一直挂着」和「写完必须摘掉」。
+
+只在 `write` 没写完时打开：`buf.hasRemaining()` 或这次 `write` 返回 0（发送缓冲满了）。写完立刻 `interestOps(OP_READ)`，去掉 `OP_WRITE`。
+
+**不要**在 `accept` / `connect` 时默认挂上，也 **不要**一直留着。Socket 发送缓冲空闲时 `OP_WRITE` 几乎总是就绪，`select` 会立刻返回，CPU 100%。这是 Selector 第一常见坑。
+
+### `read == 0` 和 `read == -1` 分别怎么办？
+
+常见答：「0 则 Selector 继续等数据，-1 则关闭 key。」  
+`0` / `-1` 的含义对；「让 Selector 等」和「关闭 key」两个说法不准确。
+
+| 返回值 | 含义 | 正确动作 |
+| --- | --- | --- |
+| `> 0` | 拷到了这么多字节 | `flip` 后解码，半包 `compact` |
+| `== 0` | 非阻塞下此刻没有数据 | **忽略**，回到 `select`。不用通知 Selector，也不要当作出错或关闭 |
+| `< 0`（`-1`） | 对端关闭了输出（EOF） | **关掉 Channel**（`channel.close()`）。key 会随之 cancel。只 `cancel` 不 close 会泄漏 FD |
+
+`read == 0` 不是一种你要发的指令，是「这次没事」。`NioEchoServer` 对 `n < 0` 走 `closeKey`（关的是 channel）；`n == 0` 不会单独处理，接着 `flip`/`drain` 也只是空转一次累计区，然后回 `select`。
+
+### 为什么聊天室必须自己按行切包？
+
+常见答：「Channel 处理数据的边界不等于业务数据边界。」  
+方向对，但 Channel **没有**消息边界可对齐。更准确的原因是 **TCP 是字节流**。
+
+`Channel.read()` 这一次返回的是内核接收缓冲里此刻能拷走的任意一段：可能半行、一行、两行粘在一起。Selector / Channel 不知道聊天室以 `\n` 为一句。所以每个连接必须自己留 inbound 累计区，扫到 `\n` 再广播；半包 `compact` 留下。这就是粘包 / 半包。不按行切，广播出去的会是半句话或两句粘成一句。
